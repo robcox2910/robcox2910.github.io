@@ -1,0 +1,70 @@
+name: Docs
+
+on:
+  workflow_call:
+    inputs:
+      coverage-report:
+        description: Run the tests and publish the HTML coverage report under /coverage
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+      - name: Set up Python
+        run: uv python install 3.14
+      - name: Build coverage report
+        if: ${{ inputs.coverage-report }}
+        run: |
+          uv sync --locked --all-extras
+          uv run pytest --cov-report=html:docs/coverage
+      - name: Build docs
+        run: uvx --from mkdocs==1.6.1 --with "mkdocs-material==9.6.*" mkdocs build --strict -d site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    outputs:
+      page_url: ${{ steps.deploy.outputs.page_url }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+  check:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for the site to answer
+        env:
+          URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -sf "$URL" > /dev/null; then
+              echo "$URL is up"
+              exit 0
+            fi
+            echo "Attempt $attempt: not up yet"
+            sleep 10
+          done
+          echo "$URL did not respond within 5 minutes" >&2
+          exit 1
