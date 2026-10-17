@@ -328,3 +328,18 @@ def test_apply_appends_to_exclude_docs_without_superpowers(tmp_path: Path) -> No
     assert "drafts/" in str(config["exclude_docs"])
     assert "superpowers/" in str(config["exclude_docs"])
     assert out.count("exclude_docs") == 1
+
+
+def test_coverage_report_survives_a_second_render(tmp_path: Path) -> None:
+    """Rendering over an already-synced repo keeps the coverage report on."""
+    workflow = "steps:\n  - run: uv run pytest --cov-report=html:docs/coverage\n"
+    first, _ = make_repo(tmp_path, {".github/workflows/docs.yml": workflow})
+    (tmp_path / ".github/workflows/docs.yml").write_text(
+        first.files[".github/workflows/docs.yml"], encoding="utf-8"
+    )
+    second = render(PYDB, SERIES, tmp_path)
+    docs = yaml.safe_load(second.files[".github/workflows/docs.yml"])
+    assert docs["jobs"]["docs"]["with"]["coverage-report"] is True
+    assert second.files == first.files | {
+        name: content for name, content in second.files.items() if name not in first.files
+    }

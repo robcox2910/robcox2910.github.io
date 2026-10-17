@@ -65,7 +65,7 @@ DOCS_PATTERN = r"(?<=## )documentation"
 HIDDEN_DOCS_DIR = "superpowers"
 DEFAULT_NAV_INDENT = 2
 TOP_KEY = re.compile(r"^[A-Za-z_][\w-]*\s*:")
-HTML_COVERAGE = re.compile(r"pytest[^\n]*--cov-report[= ]html")
+HTML_COVERAGE = re.compile(r"pytest[^\n]*--cov-report[= ]html|coverage-report:\s*true")
 MARKDOWN_LINK = re.compile(r"(!?)\[([^\]]*)\]\(([^)\s]+)((?:\s+\"[^\"]*\")?)\)")
 URL_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 PLAIN_TITLE = re.compile(r"[\w .()&/-]+")
