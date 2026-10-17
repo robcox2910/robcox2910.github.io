@@ -239,3 +239,16 @@ def test_pr_is_created_with_explicit_repo_base_and_head(
     assert flag("--repo") == f"robcox2910/{PYDB.repo}"
     assert flag("--base") == "main"
     assert flag("--head") == sync_module.BRANCH
+
+
+def test_first_sync_reports_replaced_readme_lines(tmp_path: Path) -> None:
+    """README lines replaced by the fallback are recorded and listed in the PR body."""
+    repo = make_repo(tmp_path)
+    readme = "# PyDB\n\n## Related projects\n\n- [PyKV](x)\n\nMy notes.\n\n## License\n\nMIT\n"
+    (repo / "README.md").write_text(readme, encoding="utf-8")
+    result = apply_to_tree(repo, PYDB, SERIES)
+    assert result.replaced_readme_lines == ["## Related projects", "- [PyKV](x)"]
+    assert "My notes." in (repo / "README.md").read_text(encoding="utf-8")
+    body = _pr_body(result)
+    assert "README lines replaced" in body
+    assert "`- [PyKV](x)`" in body

@@ -14,7 +14,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from series.blocks import upsert_section_block
+from series.blocks import upsert_section_block_with_removed
 from series.claude_md import split_claude_md
 from series.config import SERIES_FILE, Project, load_series
 from series.render import TEMPLATES, apply_mkdocs_blocks, render
@@ -43,11 +43,12 @@ class SyncError(Exception):
 
 @dataclass
 class SyncResult:
-    """What an apply did: files changed, CLAUDE.md lines moved, and a ruff note."""
+    """What an apply did: files changed, lines moved or replaced, and a ruff note."""
 
     changed: list[str] = field(default_factory=lambda: list[str]())
     moved_claude_lines: list[str] = field(default_factory=lambda: list[str]())
     dropped_select_comments: bool = False
+    replaced_readme_lines: list[str] = field(default_factory=lambda: list[str]())
 
 
 def _read(path: Path) -> str | None:
@@ -71,9 +72,10 @@ def _plan(
     readme = _read(repo_root / "README.md")
     text = f"# {project.name}\n" if readme is None else readme
     for pattern, start, end, body in rendered.blocks.get("README.md", []):
-        text = upsert_section_block(
+        text, removed = upsert_section_block_with_removed(
             text, heading_pattern=pattern or "", start=start, end=end, body=body
         )
+        result.replaced_readme_lines += removed
     updates["README.md"] = text
 
     mkdocs = _read(repo_root / "mkdocs.yml")
@@ -164,6 +166,8 @@ def _pr_body(result: SyncResult) -> str:
     lines += [f"- `{path}`" for path in result.changed]
     lines += ["", "## CLAUDE.md lines moved into `## Project notes`", ""]
     lines += [f"- `{line.strip()}`" for line in result.moved_claude_lines] or ["- none"]
+    lines += ["", "## README lines replaced by the series blocks", ""]
+    lines += [f"- `{line.strip()}`" for line in result.replaced_readme_lines] or ["- none"]
     if result.dropped_select_comments:
         lines += [
             "",

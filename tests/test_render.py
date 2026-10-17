@@ -343,3 +343,27 @@ def test_coverage_report_survives_a_second_render(tmp_path: Path) -> None:
     assert second.files == first.files | {
         name: content for name, content in second.files.items() if name not in first.files
     }
+
+
+def test_docs_pattern_matches_the_whole_heading(tmp_path: Path) -> None:
+    """``## Documentation style guide`` is the repo's own section and is not replaced."""
+    rendered, _ = make_repo(tmp_path)
+    pattern, start, end, body = block(rendered, "README.md", DOCS_START)
+    assert pattern is not None
+    guide = "## Documentation style guide\n\nWrite short sentences."
+    text = f"# T\n\n{guide}\n\n## License\n\nMIT\n"
+    out = upsert_section_block(text, heading_pattern=pattern, start=start, end=end, body=body)
+    assert guide in out
+    assert out.index(DOCS_START) > out.index(guide)
+
+
+def test_series_pattern_keeps_subsection(tmp_path: Path) -> None:
+    """The rendered series pattern keeps a ``###`` subsection of the old section."""
+    rendered, _ = make_repo(tmp_path)
+    pattern, start, end, body = block(rendered, "README.md", SERIES_START)
+    assert pattern is not None
+    sub = "### How PyFoo fits in\n\nIt sits on PyDB."
+    text = f"# T\n\n## Related projects\n\n- PyDB\n- PyKV\n\n{sub}\n\n## License\n\nMIT\n"
+    out = upsert_section_block(text, heading_pattern=pattern, start=start, end=end, body=body)
+    assert f"{SERIES_END}\n\n{sub}\n\n## License" in out
+    assert "- PyKV" not in out

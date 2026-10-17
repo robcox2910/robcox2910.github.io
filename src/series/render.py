@@ -31,7 +31,9 @@ appends when an existing ``mkdocs.yml`` has no ``nav``.
 
 The heading patterns use a look-behind, ``(?<=## )related projects``, because
 ``upsert_section_block`` places the pattern after ``## `` and any text, so a
-plain ``^`` could never match.
+plain ``^`` could never match. They are anchored to the whole heading:
+``## Related projects ...`` (any suffix) and exactly ``## Documentation``, so
+``## Documentation style guide`` is the repo's own section and is left alone.
 """
 
 import json
@@ -59,8 +61,8 @@ THEME_START = "# theme:start"
 THEME_END = "# theme:end"
 NAV_START = "# series-nav:start"
 NAV_END = "# series-nav:end"
-SERIES_PATTERN = r"(?<=## )related projects"
-DOCS_PATTERN = r"(?<=## )documentation"
+SERIES_PATTERN = r"(?<=## )related projects\b[^\n]*$"
+DOCS_PATTERN = r"(?<=## )documentation[ \t]*$"
 
 HIDDEN_DOCS_DIR = "superpowers"
 DEFAULT_NAV_INDENT = 2
