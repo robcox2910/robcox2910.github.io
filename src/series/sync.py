@@ -256,6 +256,9 @@ def _cmd_sync(args: argparse.Namespace) -> int:
         except SyncError as exc:
             failed = True
             print(f"{project.repo}: {exc}", file=sys.stderr)  # noqa: T201
+        except Exception as exc:  # noqa: BLE001 - one broken repo must not stop the others
+            failed = True
+            print(f"{project.repo}: {type(exc).__name__}: {exc}", file=sys.stderr)  # noqa: T201
     if failed:
         return 2
     return 1 if args.check and any(drifted) else 0
