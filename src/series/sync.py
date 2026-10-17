@@ -37,6 +37,10 @@ HOME_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 
 
+class SyncError(Exception):
+    """Raised when a step for one repo fails (a git or gh call, or a leftover clone)."""
+
+
 @dataclass
 class SyncResult:
     """What an apply did: files changed, CLAUDE.md lines moved, and a ruff note."""
@@ -144,10 +148,14 @@ def render_home(series: list[Project]) -> str:
 
 
 def _run(cmd: list[str], cwd: Path | None = None) -> str:  # pragma: no cover
-    """Run a git or gh command and return its output; raise on failure."""
-    done = subprocess.run(  # noqa: S603 - fixed argument lists, no shell
-        cmd, cwd=cwd, check=True, capture_output=True, text=True
-    )
+    """Run a git or gh command and return its output; raise ``SyncError`` on failure."""
+    try:
+        done = subprocess.run(  # noqa: S603 - fixed argument lists, no shell
+            cmd, cwd=cwd, check=True, capture_output=True, text=True
+        )
+    except subprocess.CalledProcessError as exc:
+        msg = f"`{' '.join(cmd[:3])}` failed: {exc.stderr.strip() or exc.stdout.strip()}"
+        raise SyncError(msg) from exc
     return done.stdout
 
 
@@ -169,11 +177,12 @@ def _pr_body(result: SyncResult) -> str:
     return "\n".join([*lines, "", PR_TRAILER])
 
 
-def _sync_one(  # pragma: no cover
-    project: Project, series: list[Project], scratch: Path, *, check: bool
-) -> bool:
+def _sync_one(project: Project, series: list[Project], scratch: Path, *, check: bool) -> bool:
     """Sync one project in a fresh clone; return whether it had drift."""
     clone = scratch / project.repo
+    if clone.exists():
+        msg = f"scratch clone exists ({clone}); remove it to re-run"
+        raise SyncError(msg)
     _run(
         [
             "gh", "repo", "clone", f"{GITHUB_OWNER}/{project.repo}", str(clone),
@@ -225,7 +234,16 @@ def _cmd_sync(args: argparse.Namespace) -> int:
     if not chosen:
         print(f"error: no project with repo {args.repo!r}", file=sys.stderr)  # noqa: T201
         return 2
-    drifted = [_sync_one(p, series, scratch, check=args.check) for p in chosen]
+    drifted: list[bool] = []
+    failed = False
+    for project in chosen:
+        try:
+            drifted.append(_sync_one(project, series, scratch, check=args.check))
+        except SyncError as exc:
+            failed = True
+            print(f"{project.repo}: {exc}", file=sys.stderr)  # noqa: T201
+    if failed:
+        return 2
     return 1 if args.check and any(drifted) else 0
 
 

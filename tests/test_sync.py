@@ -5,10 +5,20 @@ from pathlib import Path
 
 import pytest
 
+import series.sync as sync_module
 from series.config import load_series
-from series.sync import SyncResult, _pr_body, apply_to_tree, check_tree, main, render_home
+from series.sync import (
+    SyncError,
+    SyncResult,
+    _pr_body,
+    apply_to_tree,
+    check_tree,
+    main,
+    render_home,
+)
 
 GROUPS = 4
+FAILED = 2
 SERIES = load_series()
 PYDB = SERIES[2]
 OLD_CLAUDE = """# Claude Code Instructions
@@ -156,3 +166,48 @@ def test_home_command_writes_file(tmp_path: Path) -> None:
     out = tmp_path / "docs" / "index.md"
     assert main(["home", "--output", str(out)]) == 0
     assert out.read_text(encoding="utf-8") == render_home(SERIES)
+
+
+def _fake_run(calls: list[list[str]], failing_repo: str | None = None):
+    """Return a stand-in for ``_run`` that makes empty clones and can fail one."""
+
+    def run(cmd: list[str], cwd: Path | None = None) -> str:  # noqa: ARG001
+        calls.append(cmd)
+        if cmd[:3] == ["gh", "repo", "clone"]:
+            if cmd[3].endswith(f"/{failing_repo}"):
+                msg = "gh repo clone failed: boom"
+                raise SyncError(msg)
+            Path(cmd[4]).mkdir(parents=True)
+        return ""
+
+    return run
+
+
+def test_failed_repo_does_not_stop_the_others(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """One repo failing is reported by name, the next still runs, and the exit code is 2."""
+    calls: list[list[str]] = []
+    monkeypatch.setenv("SERIES_SCRATCH", str(tmp_path))
+    monkeypatch.setattr(sync_module, "load_series", lambda: [SERIES[1], SERIES[2]])
+    monkeypatch.setattr(sync_module, "_run", _fake_run(calls, failing_repo="pebble-lang"))
+    assert main(["sync", "--check"]) == FAILED
+    out = capsys.readouterr()
+    assert "pebble-lang: gh repo clone failed: boom" in out.err
+    assert any(c[:3] == ["gh", "repo", "clone"] and c[3].endswith("/pydb") for c in calls)
+    assert "pydb: drift in" in out.out
+
+
+def test_existing_scratch_clone_is_reported_not_overwritten(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A leftover clone folder is a failure for that repo and is left alone."""
+    calls: list[list[str]] = []
+    (tmp_path / "pydb").mkdir()
+    (tmp_path / "pydb" / "keep.txt").write_text("x", encoding="utf-8")
+    monkeypatch.setenv("SERIES_SCRATCH", str(tmp_path))
+    monkeypatch.setattr(sync_module, "_run", _fake_run(calls))
+    assert main(["sync", "--check", "--repo", "pydb"]) == FAILED
+    assert "pydb: scratch clone exists" in capsys.readouterr().err
+    assert calls == []
+    assert (tmp_path / "pydb" / "keep.txt").read_text(encoding="utf-8") == "x"
