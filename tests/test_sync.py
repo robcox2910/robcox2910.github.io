@@ -211,3 +211,31 @@ def test_existing_scratch_clone_is_reported_not_overwritten(
     assert "pydb: scratch clone exists" in capsys.readouterr().err
     assert calls == []
     assert (tmp_path / "pydb" / "keep.txt").read_text(encoding="utf-8") == "x"
+
+
+def test_pr_is_created_with_explicit_repo_base_and_head(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A single-branch clone has no tracking ref, so ``gh pr create`` must name everything."""
+    calls: list[list[str]] = []
+
+    def run(cmd: list[str], cwd: Path | None = None) -> str:  # noqa: ARG001
+        calls.append(cmd)
+        if cmd[:3] == ["gh", "repo", "clone"]:
+            dest = Path(cmd[4])
+            dest.mkdir()
+            make_repo(dest)
+        return "https://example.invalid/pr/1"
+
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    monkeypatch.setattr(sync_module, "_run", run)
+    sync_module._sync_one(PYDB, SERIES, scratch, check=False)
+    (create,) = [c for c in calls if c[:3] == ["gh", "pr", "create"]]
+
+    def flag(name: str) -> str:
+        return create[create.index(name) + 1]
+
+    assert flag("--repo") == f"robcox2910/{PYDB.repo}"
+    assert flag("--base") == "main"
+    assert flag("--head") == sync_module.BRANCH

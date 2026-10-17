@@ -204,7 +204,17 @@ def _sync_one(project: Project, series: list[Project], scratch: Path, *, check: 
     _run(["git", "add", "-A"], clone)
     _run(["git", "commit", "-m", f"{COMMIT_TITLE}\n\n{COMMIT_TRAILER}"], clone)
     _run(["git", "push", "-u", "origin", BRANCH], clone)
-    url = _run(["gh", "pr", "create", "--title", COMMIT_TITLE, "--body", _pr_body(result)], clone)
+    url = _run(
+        [
+            "gh", "pr", "create",
+            "--repo", f"{GITHUB_OWNER}/{project.repo}",
+            "--base", "main",
+            "--head", BRANCH,
+            "--title", COMMIT_TITLE,
+            "--body", _pr_body(result),
+        ],
+        clone,
+    )  # fmt: skip
     print(f"{project.repo}: {url.strip()}")  # noqa: T201
     return False
 
