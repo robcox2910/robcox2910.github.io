@@ -1,0 +1,23 @@
+site_name: From scratch in Python
+site_url: https://robcox2910.github.io/
+repo_url: https://github.com/robcox2910/robcox2910.github.io
+repo_name: robcox2910/robcox2910.github.io
+
+# theme:start
+# theme:end
+
+exclude_docs: |
+  superpowers/
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences
+  - tables
+
+nav:
+  - Home: index.md
+  # series-nav:start
+  # series-nav:end
