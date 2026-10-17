@@ -1,0 +1,64 @@
+name: Python CI
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: Python version to test with
+        type: string
+        default: "3.14"
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+      - name: Set up Python
+        run: uv python install ${{ inputs.python-version }}
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+      - name: Run ruff linter
+        run: uv run ruff check .
+      - name: Run ruff formatter check
+        run: uv run ruff format --check .
+      - name: Run pyright
+        run: uv run pyright src tests
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+      - name: Set up Python
+        run: uv python install ${{ inputs.python-version }}
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+      - name: Run tests with coverage
+        run: uv run pytest
+
+  security:
+    runs-on: ubuntu-latest
+    # Advisory only: surfaces CVEs without blocking merges on upstream or
+    # transitive vulnerabilities the project cannot fix.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+      - name: Set up Python
+        run: uv python install ${{ inputs.python-version }}
+      - name: Run pip-audit (advisory)
+        # Siblings are git installs; exported as URL requirements, pip-audit
+        # skips them instead of auditing same-named PyPI projects.
+        run: |
+          uv export --frozen --no-emit-project --all-extras --no-hashes -q > requirements-audit.txt
+          uvx pip-audit==2.10.0 -r requirements-audit.txt --disable-pip --no-deps
