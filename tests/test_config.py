@@ -1,10 +1,11 @@
 """Tests for loading the series list from series.yml."""
 
+import tomllib
 from pathlib import Path
 
 import pytest
 
-from series.config import Project, SeriesError, load_series
+from series.config import SERIES_FILE, Project, SeriesError, load_series
 
 EXPECTED_COUNT = 17
 EXPECTED_NAMES = [
@@ -130,3 +131,10 @@ class TestValidation:
         assert isinstance(project, Project)
         with pytest.raises(AttributeError):
             project.name = "Other"  # pyright: ignore[reportAttributeAccessIssue]
+
+
+def test_hub_does_not_depend_on_pip_audit() -> None:
+    """pip-audit runs through ``uvx``, so the hub, like every repo, never depends on it."""
+    pyproject = tomllib.loads((SERIES_FILE.parent / "pyproject.toml").read_text(encoding="utf-8"))
+    groups = [*pyproject["dependency-groups"].values(), pyproject["project"]["dependencies"]]
+    assert not [dep for group in groups for dep in group if dep.startswith("pip-audit")]
