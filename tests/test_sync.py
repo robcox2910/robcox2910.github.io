@@ -6,7 +6,8 @@ from pathlib import Path
 import pytest
 
 import series.sync as sync_module
-from series.config import load_series
+from series.blocks import BlockError
+from series.config import Project, load_series
 from series.sync import (
     SyncError,
     SyncResult,
@@ -161,13 +162,6 @@ def test_cli_unknown_repo(
     assert "no project" in capsys.readouterr().err
 
 
-def test_home_command_writes_file(tmp_path: Path) -> None:
-    """``series home --output`` writes the rendered page."""
-    out = tmp_path / "docs" / "index.md"
-    assert main(["home", "--output", str(out)]) == 0
-    assert out.read_text(encoding="utf-8") == render_home(SERIES)
-
-
 def _fake_run(calls: list[list[str]], failing_repo: str | None = None):
     """Return a stand-in for ``_run`` that makes empty clones and can fail one."""
 
@@ -239,3 +233,51 @@ def test_pr_is_created_with_explicit_repo_base_and_head(
     assert flag("--repo") == f"robcox2910/{PYDB.repo}"
     assert flag("--base") == "main"
     assert flag("--head") == sync_module.BRANCH
+
+
+def test_first_sync_reports_replaced_readme_lines(tmp_path: Path) -> None:
+    """README lines replaced by the fallback are recorded and listed in the PR body."""
+    repo = make_repo(tmp_path)
+    readme = "# PyDB\n\n## Related projects\n\n- [PyKV](x)\n\nMy notes.\n\n## License\n\nMIT\n"
+    (repo / "README.md").write_text(readme, encoding="utf-8")
+    result = apply_to_tree(repo, PYDB, SERIES)
+    assert result.replaced_readme_lines == ["## Related projects", "- [PyKV](x)"]
+    assert "My notes." in (repo / "README.md").read_text(encoding="utf-8")
+    body = _pr_body(result)
+    assert "README lines replaced" in body
+    assert "`- [PyKV](x)`" in body
+
+
+DRIFT = 1
+
+
+def test_unexpected_error_in_one_repo_does_not_stop_the_others(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Any error in one repo (not just SyncError) is that repo's failure, and the run goes on."""
+    monkeypatch.setenv("SERIES_SCRATCH", str(tmp_path))
+    monkeypatch.setattr(sync_module, "load_series", lambda: [SERIES[1], SERIES[2]])
+    monkeypatch.setattr(sync_module, "_run", _fake_run([]))
+    real_check = sync_module.check_tree
+
+    def check(repo_root: Path, project: Project, series: list[Project]) -> list[str]:
+        if project.repo == "pebble-lang":
+            msg = "expected exactly one marker"
+            raise BlockError(msg)
+        return real_check(repo_root, project, series)
+
+    monkeypatch.setattr(sync_module, "check_tree", check)
+    assert main(["sync", "--check"]) == FAILED
+    out = capsys.readouterr()
+    assert "pebble-lang: BlockError: expected exactly one marker" in out.err
+    assert "pydb: drift in" in out.out
+
+
+def test_check_with_drift_and_no_failures_exits_1(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``--check`` exits 1 when a repo drifts and nothing failed."""
+    monkeypatch.setenv("SERIES_SCRATCH", str(tmp_path))
+    monkeypatch.setattr(sync_module, "_run", _fake_run([]))
+    assert main(["sync", "--check", "--repo", "pydb"]) == DRIFT
+    assert "pydb: drift in" in capsys.readouterr().out

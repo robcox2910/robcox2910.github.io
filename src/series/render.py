@@ -10,7 +10,8 @@ The ``Rendered`` contract
 sync owns outright: ``LICENSE``, ``.pre-commit-config.yaml``,
 ``.github/workflows/ci.yml`` and ``.github/workflows/docs.yml``. When the
 repo has no ``mkdocs.yml`` it also holds a whole ``mkdocs.yml``, and when it
-has no ``docs/index.md`` it holds one made from the README.
+has no ``docs/index.md`` it holds one made from the README, minus the
+series and docs blocks (the site's series nav already links the series).
 
 ``blocks`` maps a repo-relative path to a list of
 ``(heading_pattern | None, start, end, body)`` entries:
@@ -31,7 +32,9 @@ appends when an existing ``mkdocs.yml`` has no ``nav``.
 
 The heading patterns use a look-behind, ``(?<=## )related projects``, because
 ``upsert_section_block`` places the pattern after ``## `` and any text, so a
-plain ``^`` could never match.
+plain ``^`` could never match. They are anchored to the whole heading:
+``## Related projects ...`` (any suffix) and exactly ``## Documentation``, so
+``## Documentation style guide`` is the repo's own section and is left alone.
 """
 
 import json
@@ -43,7 +46,7 @@ from typing import Any, cast
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from series.blocks import BlockError, upsert_section_block
+from series.blocks import BlockError, remove_block, upsert_section_block
 from series.claude_md import END as CLAUDE_END
 from series.claude_md import START as CLAUDE_START
 from series.config import SITE_ROOT, Project
@@ -59,8 +62,8 @@ THEME_START = "# theme:start"
 THEME_END = "# theme:end"
 NAV_START = "# series-nav:start"
 NAV_END = "# series-nav:end"
-SERIES_PATTERN = r"(?<=## )related projects"
-DOCS_PATTERN = r"(?<=## )documentation"
+SERIES_PATTERN = r"(?<=## )related projects\b[^\n]*$"
+DOCS_PATTERN = r"(?<=## )documentation[ \t]*$"
 
 HIDDEN_DOCS_DIR = "superpowers"
 DEFAULT_NAV_INDENT = 2
@@ -169,6 +172,62 @@ def _absolute_links(readme: str, project: Project) -> str:
     return MARKDOWN_LINK.sub(fix, readme)
 
 
+@dataclass(frozen=True)
+class _Bodies:
+    """The rendered text of each marked block, before markers are added."""
+
+    series: str
+    docs: str
+    theme: str
+    nav: str
+    standard: str
+
+
+def _bodies(values: dict[str, Any]) -> _Bodies:
+    """Render the body of every marked block from the template ``values``."""
+    return _Bodies(
+        series=_template("readme_series.md.j2", **values).strip("\n"),
+        docs=_template("readme_docs.md.j2", **values).strip("\n"),
+        theme=(TEMPLATES / "mkdocs_theme.yml").read_text(encoding="utf-8").strip("\n"),
+        nav=_template("mkdocs_series_nav.yml.j2", **values).strip("\n"),
+        standard=(TEMPLATES / "claude_standard.md").read_text(encoding="utf-8").strip("\n"),
+    )
+
+
+def _readme_blocks(bodies: _Bodies) -> list[Block]:
+    """Return the README series and docs block entries."""
+    return [
+        (SERIES_PATTERN, SERIES_START, SERIES_END, bodies.series),
+        (DOCS_PATTERN, DOCS_START, DOCS_END, bodies.docs),
+    ]
+
+
+def _mkdocs_blocks(bodies: _Bodies) -> list[Block]:
+    """Return the mkdocs.yml theme and series-nav block entries."""
+    return [(None, THEME_START, THEME_END, bodies.theme), (None, NAV_START, NAV_END, bodies.nav)]
+
+
+def render_hub(series: list[Project]) -> Rendered:
+    """Render the blocks the hub itself carries: README, CLAUDE.md and mkdocs.yml.
+
+    The hub is not a project, so no row is bold and no nav entry says "you are
+    here"; its docs link is the home page. ``files`` is left empty: the hub
+    keeps its own workflows and never gets the ``@v1`` caller files.
+    """
+    bodies = _bodies(
+        {"current": None, "series": series, "home_url": HOME_URL, "site_url": HOME_URL}
+    )
+    nav_block = _indent(_marked(NAV_START, NAV_END, bodies.nav), DEFAULT_NAV_INDENT)
+    return Rendered(
+        blocks={
+            "README.md": _readme_blocks(bodies),
+            "CLAUDE.md": [(None, CLAUDE_START, CLAUDE_END, bodies.standard)],
+            "mkdocs.yml": _mkdocs_blocks(bodies),
+        },
+        nav_fallback=f"nav:\n  - Home: index.md\n{nav_block}\n",
+    )
+
+
 def render(project: Project, series: list[Project], repo_root: Path) -> Rendered:
     """Render the standard for ``project``; ``repo_root`` is only read, never written."""
     values: dict[str, Any] = {
@@ -178,11 +237,8 @@ def render(project: Project, series: list[Project], repo_root: Path) -> Rendered
         "home_url": HOME_URL,
         "site_url": project.site_url,
     }
-    series_body = _template("readme_series.md.j2", **values).strip("\n")
-    docs_body = _template("readme_docs.md.j2", **values).strip("\n")
-    theme_body = (TEMPLATES / "mkdocs_theme.yml").read_text(encoding="utf-8").strip("\n")
-    nav_body = _template("mkdocs_series_nav.yml.j2", **values).strip("\n")
-    standard = (TEMPLATES / "claude_standard.md").read_text(encoding="utf-8").strip("\n")
+    bodies = _bodies(values)
+    theme_body, nav_body = bodies.theme, bodies.nav
 
     coverage = "true" if _has_coverage_report(repo_root) else "false"
     rendered = Rendered(
@@ -196,20 +252,14 @@ def render(project: Project, series: list[Project], repo_root: Path) -> Rendered
             ".github/workflows/docs.yml": _template("docs.yml", coverage_report=coverage),
         },
         blocks={
-            "README.md": [
-                (SERIES_PATTERN, SERIES_START, SERIES_END, series_body),
-                (DOCS_PATTERN, DOCS_START, DOCS_END, docs_body),
-            ],
-            "CLAUDE.md": [(None, CLAUDE_START, CLAUDE_END, standard)],
+            "README.md": _readme_blocks(bodies),
+            "CLAUDE.md": [(None, CLAUDE_START, CLAUDE_END, bodies.standard)],
         },
     )
     pages = _nav_pages(repo_root)
     nav_block = _marked(NAV_START, NAV_END, nav_body)
     if (repo_root / "mkdocs.yml").is_file():
-        rendered.blocks["mkdocs.yml"] = [
-            (None, THEME_START, THEME_END, theme_body),
-            (None, NAV_START, NAV_END, nav_body),
-        ]
+        rendered.blocks["mkdocs.yml"] = _mkdocs_blocks(bodies)
         items = "".join(f"  - {title}: {path}\n" for title, path in pages)
         rendered.nav_fallback = f"nav:\n{items}{_indent(nav_block, DEFAULT_NAV_INDENT)}\n"
     else:
@@ -224,14 +274,16 @@ def render(project: Project, series: list[Project], repo_root: Path) -> Rendered
         readme_path = repo_root / "README.md"
         readme = readme_path.read_text(encoding="utf-8") if readme_path.is_file() else ""
         readme = readme or f"# {project.name}\n"
-        with_series = upsert_section_block(
-            readme,
-            heading_pattern=SERIES_PATTERN,
-            start=SERIES_START,
-            end=SERIES_END,
-            body=series_body,
-        )
-        rendered.files["docs/index.md"] = _absolute_links(with_series, project)
+        # Fill the blocks (which also swaps out an old unmarked series section),
+        # then drop them: the site's series nav links the series, and a frozen
+        # copy of the table in docs/index.md would go stale.
+        for pattern, start, end, body in rendered.blocks["README.md"]:
+            readme = upsert_section_block(
+                readme, heading_pattern=pattern or "", start=start, end=end, body=body
+            )
+        for _, start, end, _ in rendered.blocks["README.md"]:
+            readme = remove_block(readme, start, end)
+        rendered.files["docs/index.md"] = _absolute_links(readme, project)
     return rendered
 
 

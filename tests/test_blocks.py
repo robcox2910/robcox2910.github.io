@@ -2,7 +2,13 @@
 
 import pytest
 
-from series.blocks import BlockError, replace_block, upsert_section_block
+from series.blocks import (
+    BlockError,
+    remove_block,
+    replace_block,
+    upsert_section_block,
+    upsert_section_block_with_removed,
+)
 
 START = "<!-- series:start -->"
 END = "<!-- series:end -->"
@@ -146,3 +152,72 @@ class TestUpsertSectionBlock:
         """Check that upsert is idempotent."""
         once = _upsert(text)
         assert _upsert(once) == once
+
+
+class TestFirstSyncKeepsRepoText:
+    """A first sync replaces only the old table or intro, never the repo's own prose."""
+
+    def test_subsection_and_prose_survive(self) -> None:
+        """A ``###`` subsection under the old heading is kept after the end marker."""
+        sub = "### How PyFoo fits in\n\nPyFoo sits on top of PyDB."
+        text = f"{BEFORE}## Related projects\n\n{OLD_TABLE}\n\n{sub}{AFTER}"
+        result = _upsert(text)
+        assert result == f"{BEFORE}{START}\n{BODY}\n{END}\n\n{sub}{AFTER}"
+
+    def test_prose_after_the_table_survives(self) -> None:
+        """The intro and table go; a later paragraph stays."""
+        text = f"{BEFORE}## Related projects\n\nSee also:\n\n{OLD_TABLE}\n\nLater prose.{AFTER}"
+        result = _upsert(text)
+        assert result == f"{BEFORE}{START}\n{BODY}\n{END}\n\nLater prose.{AFTER}"
+
+    def test_without_a_table_only_the_first_paragraph_goes(self) -> None:
+        """With no table or list, only the intro paragraph is replaced."""
+        text = f"{BEFORE}## Related projects\n\nOld intro.\n\nMy own notes.{AFTER}"
+        result = _upsert(text)
+        assert result == f"{BEFORE}{START}\n{BODY}\n{END}\n\nMy own notes.{AFTER}"
+
+    def test_code_fence_is_kept(self) -> None:
+        """A fenced code block (which may hold blank lines) is never cut."""
+        fence = "```bash\nuv sync\n\nuv run pytest\n```"
+        text = f"{BEFORE}## Related projects\n\n{fence}{AFTER}"
+        result = _upsert(text)
+        assert result == f"{BEFORE}{START}\n{BODY}\n{END}\n\n{fence}{AFTER}"
+
+    def test_removed_lines_are_reported(self) -> None:
+        """The heading and table lines that were replaced are returned."""
+        text = f"{BEFORE}## Related projects\n\n{OLD_TABLE}\n\nLater prose.{AFTER}"
+        result, removed = upsert_section_block_with_removed(
+            text, heading_pattern=HEADING_PATTERN, start=START, end=END, body=BODY
+        )
+        assert result == _upsert(text)
+        assert removed == ["## Related projects", *OLD_TABLE.split("\n")]
+
+    def test_nothing_removed_when_markers_exist(self) -> None:
+        """Reusing existing markers reports no removed lines."""
+        text = f"{BEFORE}{START}\nold\n{END}{AFTER}"
+        _, removed = upsert_section_block_with_removed(
+            text, heading_pattern=HEADING_PATTERN, start=START, end=END, body=BODY
+        )
+        assert removed == []
+
+
+class TestRemoveBlock:
+    """Tests for ``remove_block``."""
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("no markers\n", "no markers\n"),
+            (f"# T\n\n{START}\nx\n{END}\n\nmore\n", "# T\n\nmore\n"),
+            (f"{START}\nx\n{END}\n\nmore\n", "more\n"),
+            (f"# T\n\n{START}\nx\n{END}\n", "# T\n"),
+        ],
+    )
+    def test_block_and_markers_go(self, text: str, expected: str) -> None:
+        """Check that the block goes, markers and all, with one blank line left."""
+        assert remove_block(text, START, END) == expected
+
+    def test_broken_markers_raise(self) -> None:
+        """Check that a lone marker raises."""
+        with pytest.raises(BlockError):
+            remove_block(f"{START}\nx\n", START, END)

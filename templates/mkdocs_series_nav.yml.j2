@@ -1,7 +1,7 @@
 - The series:
     - Series home: {{ home_url }}
 {% for p in series %}
-{% if p.repo == current.repo %}
+{% if current and p.repo == current.repo %}
     - "[You are here] {{ p.name }}": {{ p.site_url }}
 {% else %}
     - {{ p.name }}: {{ p.site_url }}

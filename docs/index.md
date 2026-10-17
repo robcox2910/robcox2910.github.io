@@ -1,6 +1,6 @@
 # From scratch in Python
 
-Seventeen projects that build real systems from scratch, to teach how they work.
+A series of 17 projects that build real systems from scratch, to teach how they work.
 
 ## Start here
 
