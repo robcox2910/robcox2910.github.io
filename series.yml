@@ -1,0 +1,122 @@
+# The list of projects in the "from scratch in Python" series, in learning order.
+# `folder` is the checkout directory, `repo` the GitHub repo name, `package` the
+# Python distribution name. `builds_on` may only name projects listed earlier.
+projects:
+  - name: PyOS
+    repo: py-os
+    folder: os_learning
+    package: pyos-learn
+    teaches: Operating systems
+    builds_on: []
+  - name: Pebble
+    repo: pebble-lang
+    folder: pebble-lang
+    package: pebble-lang
+    teaches: Compilers and programming languages
+    builds_on: []
+  - name: PyDB
+    repo: pydb
+    folder: pydb
+    package: pydb
+    teaches: Relational databases
+    builds_on: []
+  - name: PyKV
+    repo: pykv
+    folder: pykv
+    package: pykv
+    teaches: Key-value stores
+    builds_on: []
+  - name: PyDocDB
+    repo: pydoc-db
+    folder: pydocdb
+    package: pydocdb
+    teaches: Document databases
+    builds_on: []
+  - name: PyGraphDB
+    repo: pygraphdb
+    folder: pygraphdb
+    package: pygraphdb
+    teaches: Graph databases
+    builds_on: []
+  - name: PyTSDB
+    repo: pytsdb
+    folder: pytsdb
+    package: pytsdb
+    teaches: Time-series databases
+    builds_on: []
+  - name: PyVecDB
+    repo: pyvecdb
+    folder: pyvecdb
+    package: pyvecdb
+    teaches: Vector databases
+    builds_on: []
+  - name: PyColDB
+    repo: pycoldb
+    folder: pycoldb
+    package: pycoldb
+    teaches: Column-family databases
+    builds_on: []
+  - name: PyCrypt
+    repo: pycrypt
+    folder: pycrypt
+    package: pycrypt
+    teaches: Cryptography
+    builds_on: []
+  - name: PyNet
+    repo: pynet
+    folder: pynet
+    package: pynet
+    teaches: Computer networking
+    builds_on: []
+  - name: PyWeb
+    repo: pyweb
+    folder: pyweb
+    package: pyweb
+    teaches: HTTP web servers
+    builds_on: [PyNet, PyCrypt]
+  - name: PyGit
+    repo: pygit
+    folder: pygit
+    package: pygit
+    teaches: Version control
+    builds_on: []
+  - name: PySearch
+    repo: pysearch
+    folder: pysearch
+    package: pysearch
+    teaches: Search engines
+    builds_on: []
+  - name: PyMQ
+    repo: pymq
+    folder: pymq
+    package: pymq
+    teaches: Message queues
+    builds_on: [PyNet]
+  - name: PyLLM
+    repo: pyllm
+    folder: pyllm
+    package: pyllm
+    teaches: Language models (the brain)
+    builds_on: [Pebble]
+  - name: PyStack
+    repo: pystack
+    folder: pystack
+    package: pystack
+    teaches: Full-stack integration
+    builds_on:
+      - PyOS
+      - Pebble
+      - PyDB
+      - PyKV
+      - PyDocDB
+      - PyGraphDB
+      - PyTSDB
+      - PyVecDB
+      - PyColDB
+      - PyCrypt
+      - PyNet
+      - PyWeb
+      - PyGit
+      - PySearch
+      - PyMQ
+      - PyLLM

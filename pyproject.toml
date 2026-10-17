@@ -1,0 +1,97 @@
+[project]
+name = "series-home"
+version = "0.1.0"
+description = "The home page and shared standards for the 'from scratch in Python' series"
+readme = "README.md"
+requires-python = ">=3.14"
+license = {text = "MIT"}
+authors = [
+    { name = "Rob Cox" }
+]
+dependencies = [
+    "tomlkit>=0.13",
+    "pyyaml>=6.0",
+    "jinja2>=3.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.9.3",
+    "pyright>=1.1.400",
+    "pre-commit>=4.0.1",
+    "pip-audit>=2.10.0",
+    "types-pyyaml>=6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/series"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "N", "UP", "B", "C4", "C90", "PTH", "SIM",
+    "TID", "S", "PERF", "FURB", "PIE", "T10", "T20", "ERA", "PL",
+    "RET", "ARG", "FBT", "DTZ", "ICN", "PT", "D", "RUF", "A", "BLE",
+    "EM", "FLY", "ISC", "PGH", "RSE", "SLF", "TRY",
+]
+ignore = [
+    "E501", "D203", "D213", "ISC001", "TRY003", "TRY300",
+    "PIE807", "PLW0108", "FBT001", "FBT003",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.ruff.lint.pylint]
+max-args = 9
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "SLF001"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--cov=src/series",
+    "--cov-report=term-missing",
+    "--cov-fail-under=90",
+]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = ["*/tests/*", "*/__pycache__/*", "*/.venv/*"]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+
+[tool.pyright]
+pythonVersion = "3.14"
+typeCheckingMode = "strict"
+include = ["src", "tests"]
+venvPath = "."
+venv = ".venv"
+
+[[tool.pyright.executionEnvironments]]
+root = "tests"
+extraPaths = ["src"]
+reportPrivateUsage = false
