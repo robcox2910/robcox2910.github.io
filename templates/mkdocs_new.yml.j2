@@ -1,0 +1,24 @@
+site_name: {{ project.name }}
+site_url: {{ project.site_url }}
+repo_url: {{ project.github_url }}
+repo_name: robcox2910/{{ project.repo }}
+
+{{ theme_block }}
+
+exclude_docs: |
+  superpowers/
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - tables
+
+nav:
+{% for title, path in pages %}
+  - {{ title }}: {{ path }}
+{% endfor %}
+{{ nav_block | indent(2, first=True) }}
