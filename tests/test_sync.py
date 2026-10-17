@@ -162,13 +162,6 @@ def test_cli_unknown_repo(
     assert "no project" in capsys.readouterr().err
 
 
-def test_home_command_writes_file(tmp_path: Path) -> None:
-    """``series home --output`` writes the rendered page."""
-    out = tmp_path / "docs" / "index.md"
-    assert main(["home", "--output", str(out)]) == 0
-    assert out.read_text(encoding="utf-8") == render_home(SERIES)
-
-
 def _fake_run(calls: list[list[str]], failing_repo: str | None = None):
     """Return a stand-in for ``_run`` that makes empty clones and can fail one."""
 

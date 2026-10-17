@@ -1,9 +1,11 @@
-"""The ``series`` command: sync the standard into every project, and render the hub page.
+"""The ``series`` command: sync the standard into every project, and keep the hub fresh.
 
 ``apply_to_tree`` brings one checked-out repo onto the standard and
-``check_tree`` says what would change. ``main`` is the command line: it
-clones each project into ``$SERIES_SCRATCH`` (never a local checkout), applies
-the standard on a branch, and opens a pull request.
+``check_tree`` says what would change. ``main`` is the command line:
+``series sync`` clones each project into ``$SERIES_SCRATCH`` (never a local
+checkout), applies the standard on a branch, and opens a pull request;
+``series hub`` regenerates the hub's own home page, README blocks, CLAUDE.md
+standard and mkdocs nav from ``series.yml`` (``check_hub`` says what would change).
 """
 
 import argparse
@@ -14,10 +16,10 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from series.blocks import upsert_section_block_with_removed
+from series.blocks import BlockError, replace_block, upsert_section_block_with_removed
 from series.claude_md import split_claude_md
-from series.config import SERIES_FILE, Project, load_series
-from series.render import TEMPLATES, apply_mkdocs_blocks, render
+from series.config import SERIES_FILE, Project, SeriesError, load_series
+from series.render import TEMPLATES, Rendered, apply_mkdocs_blocks, render, render_hub
 from series.tomledit import apply_standard_toml
 
 BRANCH = "chore/series-standard"
@@ -29,6 +31,11 @@ SCRATCH_ENV = "SERIES_SCRATCH"
 LOCAL_ROOT = Path("/Users/robcox/development/python")
 SELECT_ARRAY = re.compile(r"^\s*select\s*=\s*\[(.*?)\]", re.DOTALL | re.MULTILINE)
 
+HUB_ROOT = SERIES_FILE.parent
+HUB_FILES = ("README.md", "CLAUDE.md", "mkdocs.yml", "docs/index.md")
+
+# The home page's learning-path groups. Every project in series.yml must be in
+# exactly one group: a new project goes here too, or `series hub` fails.
 HOME_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Start here", ("py-os", "pebble-lang")),
     ("Storage", ("pydb", "pykv", "pydoc-db", "pygraphdb", "pytsdb", "pyvecdb", "pycoldb")),
@@ -123,19 +130,34 @@ def apply_to_tree(repo_root: Path, project: Project, series: list[Project]) -> S
 
 
 def render_home(series: list[Project]) -> str:
-    """Return the hub's ``docs/index.md``: a learning path with one card per project."""
+    """Return the hub's ``docs/index.md``: a learning path with one card per project.
+
+    Raises ``SeriesError`` when a project is in no ``HOME_GROUPS`` group, so a
+    new project can never land on the page in the wrong place by default.
+    """
     by_repo = {p.repo: p for p in series}
     grouped = {repo for _, repos in HOME_GROUPS for repo in repos}
+    ungrouped = [p.repo for p in series if p.repo not in grouped]
+    if ungrouped:
+        msg = (
+            f"no home-page group for {', '.join(ungrouped)}: "
+            "add each to HOME_GROUPS in src/series/sync.py"
+        )
+        raise SeriesError(msg)
+    intro = (
+        f"A series of {len(series)} projects that build real systems from scratch, "
+        "to teach how they work."
+    )
     lines = [
         "# From scratch in Python",
         "",
-        "Seventeen projects that build real systems from scratch, to teach how they work.",
+        intro,
         "",
     ]
     for title, repos in HOME_GROUPS:
         members = [by_repo[r] for r in repos if r in by_repo]
-        if title == "Systems":
-            members += [p for p in series if p.repo not in grouped]
+        if not members:
+            continue
         lines += [f"## {title}", "", '<div class="grid cards" markdown>', ""]
         for p in members:
             builds = f" Builds on {', '.join(p.builds_on)}." if p.builds_on else ""
@@ -147,6 +169,40 @@ def render_home(series: list[Project]) -> str:
             ]
         lines += ["</div>", ""]
     return "\n".join(lines)
+
+
+def _plan_hub(root: Path, series: list[Project]) -> dict[str, str]:
+    """Return every hub file whose content differs from what ``series.yml`` renders."""
+    rendered = render_hub(series)
+    updates = {"docs/index.md": render_home(series)}
+    readme = _read(root / "README.md") or "# Series home\n"
+    for pattern, start, end, body in rendered.blocks["README.md"]:
+        readme, _ = upsert_section_block_with_removed(
+            readme, heading_pattern=pattern or "", start=start, end=end, body=body
+        )
+    updates["README.md"] = readme
+    mkdocs, claude = _read(root / "mkdocs.yml"), _read(root / "CLAUDE.md")
+    if mkdocs is None or claude is None:
+        msg = f"the hub at {root} needs both mkdocs.yml and CLAUDE.md"
+        raise SeriesError(msg)
+    updates["mkdocs.yml"] = apply_mkdocs_blocks(mkdocs, rendered)
+    updates["CLAUDE.md"] = _replace_standard(claude, rendered)
+    return {path: new for path, new in updates.items() if _read(root / path) != new}
+
+
+def _replace_standard(text: str, rendered: Rendered) -> str:
+    """Refresh the hub's CLAUDE.md standard block, which must already be marked."""
+    (_, start, end, body), *_ = rendered.blocks["CLAUDE.md"]
+    replaced = replace_block(text, start, end, body)
+    if replaced is None:
+        msg = f"the hub's CLAUDE.md has no {start} / {end} markers"
+        raise BlockError(msg)
+    return replaced
+
+
+def check_hub(root: Path, series: list[Project]) -> list[str]:
+    """Return the hub files that ``series hub`` would change, writing nothing."""
+    return list(_plan_hub(root, series))
 
 
 def _run(cmd: list[str], cwd: Path | None = None) -> str:  # pragma: no cover
@@ -264,12 +320,24 @@ def _cmd_sync(args: argparse.Namespace) -> int:
     return 1 if args.check and any(drifted) else 0
 
 
-def _cmd_home(args: argparse.Namespace) -> int:
-    target = Path(args.output)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(render_home(load_series()), encoding="utf-8")
-    print(f"wrote {target}")  # noqa: T201
-    return 0
+def _cmd_hub(args: argparse.Namespace) -> int:
+    root = Path(args.root)
+    try:
+        drift = _plan_hub(root, load_series())
+    except (SeriesError, BlockError) as exc:
+        print(f"error: {exc}", file=sys.stderr)  # noqa: T201
+        return 2
+    for path, content in drift.items():
+        if args.check:
+            print(f"hub: drift in {path}")  # noqa: T201
+            continue
+        target = root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+        print(f"wrote {target}")  # noqa: T201
+    if not drift:
+        print("hub: up to date")  # noqa: T201
+    return 1 if args.check and drift else 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -280,9 +348,14 @@ def main(argv: list[str] | None = None) -> int:
     sync.add_argument("--check", action="store_true", help="report drift, change nothing")
     sync.add_argument("--repo", help="only this GitHub repo name")
     sync.set_defaults(run=_cmd_sync)
-    home = commands.add_parser("home", help="render the hub's docs/index.md")
-    home.add_argument("--output", default=str(SERIES_FILE.parent / "docs" / "index.md"))
-    home.set_defaults(run=_cmd_home)
+    hub = commands.add_parser(
+        "hub",
+        aliases=["home"],
+        help="regenerate the hub's home page, README blocks, CLAUDE.md standard and nav",
+    )
+    hub.add_argument("--check", action="store_true", help="report drift, change nothing")
+    hub.add_argument("--root", default=str(HUB_ROOT), help="the hub checkout (default: this one)")
+    hub.set_defaults(run=_cmd_hub)
     args = parser.parse_args(argv)
     return int(args.run(args))
 

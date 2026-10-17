@@ -5,6 +5,6 @@ This project is one of a series that builds real systems "from scratch in Python
 | Project | What it teaches | Repository | Docs |
 | --- | --- | --- | --- |
 {% for p in series %}
-{% set b = "**" if p.repo == current.repo else "" %}
+{% set b = "**" if current and p.repo == current.repo else "" %}
 | {{ b }}{{ p.name }}{{ b }} | {{ b }}{{ p.teaches }}{{ b }} | [{{ p.repo }}]({{ p.github_url }}) | [Docs]({{ p.site_url }}) |
 {% endfor %}
