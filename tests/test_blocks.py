@@ -4,6 +4,7 @@ import pytest
 
 from series.blocks import (
     BlockError,
+    remove_block,
     replace_block,
     upsert_section_block,
     upsert_section_block_with_removed,
@@ -198,3 +199,25 @@ class TestFirstSyncKeepsRepoText:
             text, heading_pattern=HEADING_PATTERN, start=START, end=END, body=BODY
         )
         assert removed == []
+
+
+class TestRemoveBlock:
+    """Tests for ``remove_block``."""
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("no markers\n", "no markers\n"),
+            (f"# T\n\n{START}\nx\n{END}\n\nmore\n", "# T\n\nmore\n"),
+            (f"{START}\nx\n{END}\n\nmore\n", "more\n"),
+            (f"# T\n\n{START}\nx\n{END}\n", "# T\n"),
+        ],
+    )
+    def test_block_and_markers_go(self, text: str, expected: str) -> None:
+        """Check that the block goes, markers and all, with one blank line left."""
+        assert remove_block(text, START, END) == expected
+
+    def test_broken_markers_raise(self) -> None:
+        """Check that a lone marker raises."""
+        with pytest.raises(BlockError):
+            remove_block(f"{START}\nx\n", START, END)

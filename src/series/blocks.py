@@ -104,6 +104,23 @@ def _replace_section(text: str, heading_pattern: str, block: str) -> tuple[str, 
     return f"{new}\n\n{text[following.start() :]}", removed
 
 
+def remove_block(text: str, start: str, end: str) -> str:
+    """Return ``text`` without the block from ``start`` to ``end`` (markers included).
+
+    The blank lines around the block collapse to one. Text with no markers
+    comes back unchanged; broken markers raise ``BlockError``.
+    """
+    if replace_block(text, start, end, "") is None:
+        return text
+    before = text[: text.index(start)].rstrip("\n")
+    after = text[text.index(end) + len(end) :].lstrip("\n")
+    if not before:
+        return after
+    if not after:
+        return f"{before}\n"
+    return f"{before}\n\n{after}"
+
+
 def _insert_block(text: str, block: str, before_heading: str) -> str:
     """Add the block before ``before_heading``, or at the end of the text."""
     target = re.search(rf"^{re.escape(before_heading)}[ \t]*$", text, flags=re.MULTILINE)

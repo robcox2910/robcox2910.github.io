@@ -10,7 +10,8 @@ The ``Rendered`` contract
 sync owns outright: ``LICENSE``, ``.pre-commit-config.yaml``,
 ``.github/workflows/ci.yml`` and ``.github/workflows/docs.yml``. When the
 repo has no ``mkdocs.yml`` it also holds a whole ``mkdocs.yml``, and when it
-has no ``docs/index.md`` it holds one made from the README.
+has no ``docs/index.md`` it holds one made from the README, minus the
+series and docs blocks (the site's series nav already links the series).
 
 ``blocks`` maps a repo-relative path to a list of
 ``(heading_pattern | None, start, end, body)`` entries:
@@ -45,7 +46,7 @@ from typing import Any, cast
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from series.blocks import BlockError, upsert_section_block
+from series.blocks import BlockError, remove_block, upsert_section_block
 from series.claude_md import END as CLAUDE_END
 from series.claude_md import START as CLAUDE_START
 from series.config import SITE_ROOT, Project
@@ -226,14 +227,16 @@ def render(project: Project, series: list[Project], repo_root: Path) -> Rendered
         readme_path = repo_root / "README.md"
         readme = readme_path.read_text(encoding="utf-8") if readme_path.is_file() else ""
         readme = readme or f"# {project.name}\n"
-        with_series = upsert_section_block(
-            readme,
-            heading_pattern=SERIES_PATTERN,
-            start=SERIES_START,
-            end=SERIES_END,
-            body=series_body,
-        )
-        rendered.files["docs/index.md"] = _absolute_links(with_series, project)
+        # Fill the blocks (which also swaps out an old unmarked series section),
+        # then drop them: the site's series nav links the series, and a frozen
+        # copy of the table in docs/index.md would go stale.
+        for pattern, start, end, body in rendered.blocks["README.md"]:
+            readme = upsert_section_block(
+                readme, heading_pattern=pattern or "", start=start, end=end, body=body
+            )
+        for _, start, end, _ in rendered.blocks["README.md"]:
+            readme = remove_block(readme, start, end)
+        rendered.files["docs/index.md"] = _absolute_links(readme, project)
     return rendered
 
 

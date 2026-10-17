@@ -367,3 +367,25 @@ def test_series_pattern_keeps_subsection(tmp_path: Path) -> None:
     out = upsert_section_block(text, heading_pattern=pattern, start=start, end=end, body=body)
     assert f"{SERIES_END}\n\n{sub}\n\n## License" in out
     assert "- PyKV" not in out
+
+
+@pytest.mark.parametrize(
+    "readme",
+    [
+        "# PyDB\n\nHello.\n\n## Related projects\n\n- [PyKV](x)\n\n## License\n\nMIT\n",
+        (
+            f"# PyDB\n\nHello.\n\n{SERIES_START}\n## Related Projects\n\n| old |\n{SERIES_END}\n\n"
+            f"{DOCS_START}\n## Documentation\n\nold\n{DOCS_END}\n\n## License\n\nMIT\n"
+        ),
+    ],
+)
+def test_generated_index_has_no_series_or_docs_block(tmp_path: Path, readme: str) -> None:
+    """A docs/index.md made from the README leaves out the series and docs blocks."""
+    rendered, _ = make_repo(tmp_path, {"README.md": readme})
+    index = rendered.files["docs/index.md"]
+    for marker in (SERIES_START, SERIES_END, DOCS_START, DOCS_END):
+        assert marker not in index
+    assert "Related" not in index
+    assert "## Documentation" not in index
+    assert "PyKV" not in index
+    assert index == "# PyDB\n\nHello.\n\n## License\n\nMIT\n"
