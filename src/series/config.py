@@ -6,6 +6,7 @@ that nothing is missing, repeated or out of order.
 """
 
 import builtins
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -16,6 +17,30 @@ SERIES_FILE = Path(__file__).resolve().parent.parent.parent / "series.yml"
 SITE_ROOT = "https://robcox2910.github.io"
 GITHUB_ROOT = "https://github.com/robcox2910"
 REQUIRED_FIELDS = ("name", "repo", "folder", "package", "teaches", "property", "builds_on")
+
+# Shown in search results and link previews for the series home page, and used
+# as the hub repo's GitHub description.
+HUB_DESCRIPTION = (
+    "Build real systems from scratch in Python: an operating system, a compiler, "
+    "databases, networking and a language model, explained for learners aged 12+."
+)
+
+# Every repo gets these GitHub topics before its own; GitHub allows 20 in all.
+COMMON_TOPICS = (
+    "python",
+    "education",
+    "from-scratch",
+    "build-your-own-x",
+    "learn-by-doing",
+    "computer-science",
+    "tdd",
+)
+MAX_TOPICS = 20
+TOPIC = re.compile(r"[a-z0-9][a-z0-9-]{0,49}")
+
+# The GoatCounter site code (the "code" in https://<code>.goatcounter.com).
+# Empty means no analytics script; set it, then run `series hub` and `series sync`.
+GOATCOUNTER_CODE = "robcox"
 
 
 class SeriesError(Exception):
@@ -34,6 +59,9 @@ class Project:
         teaches: A short phrase saying what the project teaches.
         property: One line saying which property its property-testing page walks through.
         builds_on: Names of earlier projects this one uses.
+        description: One sentence for search results, link previews and the
+            GitHub "About" box. Empty means none is set.
+        topics: The project's own GitHub topics, added after ``COMMON_TOPICS``.
 
     """
 
@@ -44,6 +72,13 @@ class Project:
     teaches: str
     property: str
     builds_on: tuple[str, ...]
+    description: str = ""
+    topics: tuple[str, ...] = ()
+
+    @builtins.property  # bare `property` is the field above
+    def all_topics(self) -> tuple[str, ...]:
+        """Return the common topics then the project's own, without repeats."""
+        return tuple(dict.fromkeys((*COMMON_TOPICS, *self.topics)))
 
     @builtins.property  # bare `property` is the field above
     def site_url(self) -> str:
@@ -67,6 +102,14 @@ def _parse_project(entry: object) -> Project:
     if missing:
         msg = f"project {label} is missing: {', '.join(missing)}"
         raise SeriesError(msg)
+    topics = tuple(str(item) for item in fields.get("topics") or ())
+    bad = [topic for topic in topics if not TOPIC.fullmatch(topic)]
+    if bad:
+        msg = f"project {label} has invalid topics (lowercase, digits, hyphens): {bad}"
+        raise SeriesError(msg)
+    if len({*COMMON_TOPICS, *topics}) > MAX_TOPICS:
+        msg = f"project {label} has more than {MAX_TOPICS} topics with the common ones"
+        raise SeriesError(msg)
     return Project(
         name=str(fields["name"]),
         repo=str(fields["repo"]),
@@ -75,6 +118,8 @@ def _parse_project(entry: object) -> Project:
         teaches=str(fields["teaches"]),
         property=str(fields["property"]),
         builds_on=tuple(str(item) for item in fields["builds_on"] or ()),
+        description=str(fields.get("description") or "").strip(),
+        topics=topics,
     )
 
 

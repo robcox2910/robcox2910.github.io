@@ -55,6 +55,7 @@ This repo is the series home: `series.yml` lists the projects, `src/series` load
 - Add a project: copy a repo, then fix its mkdocs `site_name`/`site_url`/`repo_url`/`repo_name` (the sync doesn't own them); add it to `series.yml` (with its `property` one-liner) and to `HOME_GROUPS` in `src/series/sync.py` (an ungrouped project is an error); enable Pages with `gh api -X POST repos/robcox2910/<repo>/pages -f build_type=workflow`; `series sync --repo <repo>`; full `series sync`; `series hub`
 - `series sync` and `series sync --check` need a fresh, empty `SERIES_SCRATCH` each run (an existing clone is refused); `--check` exits 0 clean, 1 drift, 2 a repo failed
 - `v1` policy: test a workflow change by pointing one project PR's caller at the branch commit SHA before moving `v1`; consider immutable `v1.0.x` tags alongside; a breaking change gets `v2`, a template change and one sync
+- `uv run series about` sets each repo's GitHub description, website and topics from `series.yml`; the sync also owns `site_description` in every `mkdocs.yml`, the `plugins` key (inside the theme block) and `overrides/main.html` (GoatCounter, from `GOATCOUNTER_CODE` in `src/series/config.py`)
 - This repo's site deploys via `.github/workflows/site.yml` (which calls the local `docs.yml`), so "the docs workflow" in the standard above means `site.yml` here; the hub keeps its own `ci.yml`/`site.yml` and never gets the `@v1` caller files
 
 ## Project notes

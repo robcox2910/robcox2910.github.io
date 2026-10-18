@@ -28,8 +28,12 @@ jobs:
         run: |
           uv sync --locked --all-extras
           uv run pytest --cov-report=html:docs/coverage
+      - name: Install cairo for social cards
+        run: sudo apt-get update -q && sudo apt-get install -y -q libcairo2
       - name: Build docs
-        run: uvx --from mkdocs==1.6.1 --with "mkdocs-material==9.6.*" mkdocs build --strict -d site
+        env:
+          SOCIAL_CARDS: "true"
+        run: uvx --from mkdocs==1.6.1 --with "mkdocs-material[imaging]==9.6.*" mkdocs build --strict -d site
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

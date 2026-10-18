@@ -5,21 +5,42 @@
 ``series sync`` clones each project into ``$SERIES_SCRATCH`` (never a local
 checkout), applies the standard on a branch, and opens a pull request;
 ``series hub`` regenerates the hub's own home page, README blocks, CLAUDE.md
-standard, mkdocs nav and property-testing page from ``series.yml`` (``check_hub`` says what would change).
+standard, mkdocs nav and property-testing page from ``series.yml`` (``check_hub`` says
+what would change); ``series about`` sets each repo's GitHub description, website
+and topics.
 """
 
 import argparse
+import json
 import os
 import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import cast
 
 from series.blocks import BlockError, replace_block, upsert_section_block_with_removed
 from series.claude_md import split_claude_md
-from series.config import SERIES_FILE, SITE_ROOT, Project, SeriesError, load_series
-from series.render import TEMPLATES, Rendered, apply_mkdocs_blocks, render, render_hub
+from series.config import (
+    COMMON_TOPICS,
+    GITHUB_ROOT,
+    HUB_DESCRIPTION,
+    SERIES_FILE,
+    SITE_ROOT,
+    Project,
+    SeriesError,
+    load_series,
+)
+from series.render import (
+    OVERRIDES_MAIN,
+    TEMPLATES,
+    Rendered,
+    apply_mkdocs_blocks,
+    overrides_main,
+    render,
+    render_hub,
+)
 from series.tomledit import apply_standard_toml
 
 BRANCH = "chore/series-standard"
@@ -32,7 +53,15 @@ LOCAL_ROOT = Path("/Users/robcox/development/python")
 SELECT_ARRAY = re.compile(r"^\s*select\s*=\s*\[(.*?)\]", re.DOTALL | re.MULTILINE)
 
 HUB_ROOT = SERIES_FILE.parent
-HUB_FILES = ("README.md", "CLAUDE.md", "mkdocs.yml", "docs/index.md", "docs/property-testing.md")
+HUB_FILES = (
+    "README.md",
+    "CLAUDE.md",
+    "mkdocs.yml",
+    "docs/index.md",
+    "docs/property-testing.md",
+    OVERRIDES_MAIN,
+)
+HUB_REPO = f"{GITHUB_OWNER}.github.io"
 
 # The home page's learning-path groups. Every project in series.yml must be in
 # exactly one group: a new project goes here too, or `series hub` fails.
@@ -129,8 +158,40 @@ def apply_to_tree(repo_root: Path, project: Project, series: list[Project]) -> S
     return result
 
 
+HOME_PITCH = (
+    "**Build real systems in Python, and see exactly how they work:** an operating "
+    "system, a programming language, seven kinds of database, a network stack, a web "
+    "server, Git, a search engine, a message queue and a GPT-style language model."
+)
+HOME_WHY = (
+    (
+        "- **Real, working systems.** Each project runs. Boot PyOS and type commands into "
+        "its shell, write a program in Pebble, query PyDB with SQL."
+    ),
+    (
+        "- **Explained for learners.** Every idea gets a plain-English page with an "
+        "everyday analogy, written so a curious 12-year-old can follow. Grown-ups who "
+        "never got to look inside are very welcome too."
+    ),
+    (
+        "- **Nothing hidden in a library.** The projects use only the Python standard "
+        "library (PyLLM adds NumPy for fast arrays), so every interesting part is code "
+        "you can read."
+    ),
+    (
+        "- **Built test-first.** Every feature was written with test-driven development, "
+        "so the tests double as worked examples."
+    ),
+)
+HOME_START = (
+    "Start with **PyOS** or **Pebble**, then pick whatever interests you: each card "
+    "says which earlier projects it builds on. **PyStack** at the end joins every "
+    "project into one platform."
+)
+
+
 def render_home(series: list[Project]) -> str:
-    """Return the hub's ``docs/index.md``: a learning path with one card per project.
+    """Return the hub's ``docs/index.md``: the pitch, then a learning path of cards.
 
     Raises ``SeriesError`` when a project is in no ``HOME_GROUPS`` group, so a
     new project can never land on the page in the wrong place by default.
@@ -149,9 +210,23 @@ def render_home(series: list[Project]) -> str:
         "to teach how they work."
     )
     lines = [
+        "---",
+        f"description: {json.dumps(HUB_DESCRIPTION)}",
+        "---",
+        "",
         "# From scratch in Python",
         "",
-        intro,
+        HOME_PITCH,
+        "",
+        (f"{intro} They are free, open source, and written for curious learners aged 12 and up."),
+        "",
+        "## Why build it yourself?",
+        "",
+        *HOME_WHY,
+        "",
+        "## How to start",
+        "",
+        HOME_START,
         "",
     ]
     for title, repos in HOME_GROUPS:
@@ -168,6 +243,15 @@ def render_home(series: list[Project]) -> str:
                 "",
             ]
         lines += ["</div>", ""]
+    lines += [
+        "---",
+        "",
+        (
+            f"Made by [Rob Cox]({GITHUB_ROOT}). Found a mistake or have an idea? "
+            "Open an issue on any project's repository."
+        ),
+        "",
+    ]
     return "\n".join(lines)
 
 
@@ -227,6 +311,7 @@ def _plan_hub(root: Path, series: list[Project]) -> dict[str, str]:
     updates = {
         "docs/index.md": render_home(series),
         "docs/property-testing.md": render_property_page(series),
+        OVERRIDES_MAIN: overrides_main(),
     }
     readme = _read(root / "README.md") or "# Series home\n"
     for pattern, start, end, body in rendered.blocks["README.md"]:
@@ -332,6 +417,84 @@ def _sync_one(project: Project, series: list[Project], scratch: Path, *, check: 
     return False
 
 
+@dataclass(frozen=True)
+class About:
+    """What a repo's GitHub "About" box should say."""
+
+    repo: str
+    description: str
+    homepage: str
+    topics: tuple[str, ...]
+
+
+def about_settings(series: list[Project]) -> list[About]:
+    """Return the About settings for the hub and every project, in series order."""
+    hub = About(HUB_REPO, HUB_DESCRIPTION, f"{SITE_ROOT}/", COMMON_TOPICS)
+    return [
+        hub,
+        *(About(p.repo, p.description, p.site_url, p.all_topics) for p in series),
+    ]
+
+
+def about_drift(want: About, have: dict[str, object]) -> list[str]:
+    """Return which About fields differ from ``have`` (a GitHub repo JSON object)."""
+    topics = have.get("topics")
+    current = (
+        sorted(str(t) for t in cast("list[object]", topics)) if isinstance(topics, list) else []
+    )
+    fields = [
+        ("description", want.description, have.get("description") or ""),
+        ("homepage", want.homepage, have.get("homepage") or ""),
+        ("topics", sorted(want.topics), current),
+    ]
+    return [name for name, wanted, actual in fields if wanted != actual]
+
+
+def _about_one(want: About, *, check: bool) -> bool:  # pragma: no cover
+    """Check or set one repo's About box; return whether it differed."""
+    path = f"repos/{GITHUB_OWNER}/{want.repo}"
+    have = json.loads(_run(["gh", "api", path]))
+    drift = about_drift(want, have)
+    if not drift:
+        print(f"{want.repo}: about is up to date")  # noqa: T201
+        return False
+    print(f"{want.repo}: about differs in {', '.join(drift)}")  # noqa: T201
+    if check:
+        return True
+    _run(
+        [
+            "gh", "api", "-X", "PATCH", path,
+            "-f", f"description={want.description}",
+            "-f", f"homepage={want.homepage}",
+        ]
+    )  # fmt: skip
+    _run(
+        [
+            "gh", "api", "-X", "PUT", f"{path}/topics",
+            *(arg for topic in want.topics for arg in ("-f", f"names[]={topic}")),
+        ]
+    )  # fmt: skip
+    return False
+
+
+def _cmd_about(args: argparse.Namespace) -> int:  # pragma: no cover
+    chosen = [a for a in about_settings(load_series()) if args.repo in (None, a.repo)]
+    if not chosen:
+        print(f"error: no repo {args.repo!r}", file=sys.stderr)  # noqa: T201
+        return 2
+    drifted: list[bool] = []
+    failed = False
+    for want in chosen:
+        try:
+            drifted.append(_about_one(want, check=args.check))
+        except SyncError as exc:
+            failed = True
+            print(f"{want.repo}: {exc}", file=sys.stderr)  # noqa: T201
+    if failed:
+        return 2
+    return 1 if any(drifted) else 0
+
+
 def _is_local_checkout(scratch: Path, series: list[Project]) -> bool:
     """Return whether ``scratch`` is, or is inside, one of the projects' local folders."""
     resolved = scratch.resolve()
@@ -409,6 +572,12 @@ def main(argv: list[str] | None = None) -> int:
     hub.add_argument("--check", action="store_true", help="report drift, change nothing")
     hub.add_argument("--root", default=str(HUB_ROOT), help="the hub checkout (default: this one)")
     hub.set_defaults(run=_cmd_hub)
+    about = commands.add_parser(
+        "about", help="set each repo's GitHub description, website and topics"
+    )
+    about.add_argument("--check", action="store_true", help="report drift, change nothing")
+    about.add_argument("--repo", help="only this GitHub repo name")
+    about.set_defaults(run=_cmd_about)
     args = parser.parse_args(argv)
     return int(args.run(args))
 

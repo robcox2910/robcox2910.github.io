@@ -1,6 +1,23 @@
+---
+description: "Build real systems from scratch in Python: an operating system, a compiler, databases, networking and a language model, explained for learners aged 12+."
+---
+
 # From scratch in Python
 
-A series of 17 projects that build real systems from scratch, to teach how they work.
+**Build real systems in Python, and see exactly how they work:** an operating system, a programming language, seven kinds of database, a network stack, a web server, Git, a search engine, a message queue and a GPT-style language model.
+
+A series of 17 projects that build real systems from scratch, to teach how they work. They are free, open source, and written for curious learners aged 12 and up.
+
+## Why build it yourself?
+
+- **Real, working systems.** Each project runs. Boot PyOS and type commands into its shell, write a program in Pebble, query PyDB with SQL.
+- **Explained for learners.** Every idea gets a plain-English page with an everyday analogy, written so a curious 12-year-old can follow. Grown-ups who never got to look inside are very welcome too.
+- **Nothing hidden in a library.** The projects use only the Python standard library (PyLLM adds NumPy for fast arrays), so every interesting part is code you can read.
+- **Built test-first.** Every feature was written with test-driven development, so the tests double as worked examples.
+
+## How to start
+
+Start with **PyOS** or **Pebble**, then pick whatever interests you: each card says which earlier projects it builds on. **PyStack** at the end joins every project into one platform.
 
 ## Start here
 
@@ -93,3 +110,7 @@ A series of 17 projects that build real systems from scratch, to teach how they 
     Full-stack integration. Builds on PyOS, Pebble, PyDB, PyKV, PyDocDB, PyGraphDB, PyTSDB, PyVecDB, PyColDB, PyCrypt, PyNet, PyWeb, PyGit, PySearch, PyMQ, PyLLM. [Source](https://github.com/robcox2910/pystack)
 
 </div>
+
+---
+
+Made by [Rob Cox](https://github.com/robcox2910). Found a mistake or have an idea? Open an issue on any project's repository.
