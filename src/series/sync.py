@@ -398,8 +398,10 @@ def _refresh_lock(clone: Path, result: SyncResult) -> None:
     """Re-lock ``clone`` after its ``pyproject.toml`` changed, so CI's ``--locked`` passes."""
     lock = clone / "uv.lock"
     if "pyproject.toml" in result.changed and lock.is_file():
+        before = lock.read_bytes()
         _run(["uv", "lock"], clone)
-        result.changed.append("uv.lock")
+        if lock.read_bytes() != before:
+            result.changed.append("uv.lock")
 
 
 def _check_lock(clone: Path, drift: list[str]) -> list[str]:

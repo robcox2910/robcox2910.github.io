@@ -122,6 +122,6 @@ def test_extras_and_markers_survive_a_raise() -> None:
     req = Requirement(entry)
     assert req.name == "hypothesis"
     assert req.extras == {"cli", "pytz"}
-    assert str(req.specifier) == ">=6.170"
+    assert str(req.specifier) == HYPOTHESIS_FLOOR.removeprefix("hypothesis")
     assert req.marker is not None
     assert str(req.marker) == 'python_version >= "3.12"'

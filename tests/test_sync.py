@@ -400,3 +400,18 @@ def test_check_flags_the_lock_when_pyproject_will_change(
     _check_runner(monkeypatch, on_standard=False, stale=False)
     assert sync_module._sync_one(PYDB, SERIES, tmp_path, check=True) is True
     assert "pydb: drift in uv.lock" in capsys.readouterr().out
+
+
+def test_unchanged_lock_is_not_listed_as_changed(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """If ``uv lock`` leaves ``uv.lock`` identical, it is not reported as changed."""
+    clone = tmp_path / PYDB.repo
+    clone.mkdir()
+    make_repo(clone)
+    (clone / "uv.lock").write_text("same\n", encoding="utf-8")
+    result = apply_to_tree(clone, PYDB, SERIES)
+    assert "pyproject.toml" in result.changed
+    monkeypatch.setattr(sync_module, "_run", lambda cmd, cwd=None: "")  # noqa: ARG005
+    sync_module._refresh_lock(clone, result)
+    assert "uv.lock" not in result.changed
