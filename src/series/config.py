@@ -5,6 +5,7 @@ project in the order you should read them. This module reads it and checks
 that nothing is missing, repeated or out of order.
 """
 
+import builtins
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -14,7 +15,7 @@ import yaml
 SERIES_FILE = Path(__file__).resolve().parent.parent.parent / "series.yml"
 SITE_ROOT = "https://robcox2910.github.io"
 GITHUB_ROOT = "https://github.com/robcox2910"
-REQUIRED_FIELDS = ("name", "repo", "folder", "package", "teaches", "builds_on")
+REQUIRED_FIELDS = ("name", "repo", "folder", "package", "teaches", "property", "builds_on")
 
 
 class SeriesError(Exception):
@@ -31,6 +32,7 @@ class Project:
         folder: Checkout directory name next to the other projects.
         package: Python distribution name.
         teaches: A short phrase saying what the project teaches.
+        property: One line saying which property its property-testing page walks through.
         builds_on: Names of earlier projects this one uses.
 
     """
@@ -40,14 +42,15 @@ class Project:
     folder: str
     package: str
     teaches: str
+    property: str
     builds_on: tuple[str, ...]
 
-    @property
+    @builtins.property  # bare `property` is the field above
     def site_url(self) -> str:
         """Return the address of the project's documentation site."""
         return f"{SITE_ROOT}/{self.repo}/"
 
-    @property
+    @builtins.property  # bare `property` is the field above
     def github_url(self) -> str:
         """Return the address of the project's GitHub repository."""
         return f"{GITHUB_ROOT}/{self.repo}"
@@ -70,6 +73,7 @@ def _parse_project(entry: object) -> Project:
         folder=str(fields["folder"]),
         package=str(fields["package"]),
         teaches=str(fields["teaches"]),
+        property=str(fields["property"]),
         builds_on=tuple(str(item) for item in fields["builds_on"] or ()),
     )
 

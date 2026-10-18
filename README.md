@@ -15,8 +15,9 @@ uv run series hub   # regenerate this repo's pages from series.yml
 standard. `series sync` writes them into every project (LICENSE, workflows,
 pre-commit config, the README series and docs blocks, the CLAUDE.md standard
 and the mkdocs theme and series nav). `series hub` does the same for this repo:
-the home page (`docs/index.md`), the README blocks, the CLAUDE.md standard and
-the mkdocs series nav. Never edit a marked block by hand; edit the source and
+the home page (`docs/index.md`), the property-testing page
+(`docs/property-testing.md`), the README blocks, the CLAUDE.md standard and the
+mkdocs series nav. Never edit a marked block by hand; edit the source and
 re-run.
 
 ### Add a project
@@ -25,8 +26,9 @@ re-run.
    `mkdocs.yml` `site_name`, `site_url`, `repo_url` and `repo_name` by hand: the
    sync owns only the theme and series-nav blocks in that file, not those keys.
 2. Add the project to `series.yml` (learning order; `builds_on` may only name
-   earlier projects) and put its repo in one of the `HOME_GROUPS` in
-   `src/series/sync.py`. `series hub` stops with an error until you do.
+   earlier projects; `property` is the one-line rule its
+   `docs/property-testing.md` walks through) and put its repo in one of the
+   `HOME_GROUPS` in `src/series/sync.py`. `series hub` stops with an error until you do.
 3. Turn on GitHub Pages with workflow builds:
    `gh api -X POST repos/robcox2910/<repo>/pages -f build_type=workflow`.
 4. Sync the new repo, then every other repo (so their tables and navs list
@@ -34,8 +36,8 @@ re-run.
    `SERIES_SCRATCH=$(mktemp -d) uv run series sync --repo <repo>`, then
    `SERIES_SCRATCH=$(mktemp -d) uv run series sync`.
 5. Regenerate the hub with `uv run series hub` and commit the result. The
-   hub's tests fail while `docs/index.md`, the README blocks, the CLAUDE.md
-   standard or the mkdocs series nav differ from what `series.yml` renders.
+   hub's tests fail while `docs/index.md`, `docs/property-testing.md`, the
+   README blocks, the CLAUDE.md standard or the mkdocs series nav differ from what `series.yml` renders.
 
 To change the standard or the series list, edit `templates/` or `series.yml`,
 then run step 4's full sync and step 5.

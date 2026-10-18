@@ -1,108 +1,126 @@
 # The list of projects in the "from scratch in Python" series, in learning order.
 # `folder` is the checkout directory, `repo` the GitHub repo name, `package` the
-# Python distribution name. `builds_on` may only name projects listed earlier.
+# Python distribution name. `property` is the one-line rule the project's
+# property-testing page walks through. `builds_on` may only name projects listed earlier.
 projects:
   - name: PyOS
     repo: py-os
     folder: os_learning
     package: pyos-learn
     teaches: Operating systems
+    property: "Every disk-arm policy visits each cylinder it was asked for exactly once: nothing lost, nothing made up."
     builds_on: []
   - name: Pebble
     repo: pebble-lang
     folder: pebble-lang
     package: pebble-lang
     teaches: Compilers and programming languages
+    property: "Whatever text you give `check`, it either says yes or raises a `PebbleError`, and never crashes."
     builds_on: []
   - name: PyDB
     repo: pydb
     folder: pydb
     package: pydb
     teaches: Relational databases
+    property: "A table saved to its file comes back exactly as it went in: schema, rows, next ID and indexes."
     builds_on: []
   - name: PyKV
     repo: pykv
     folder: pykv
     package: pykv
     teaches: Key-value stores
+    property: "Whatever you save, loading gives back: the same keys, the same values, the same types."
     builds_on: []
   - name: PyDocDB
     repo: pydoc-db
     folder: pydocdb
     package: pydocdb
     teaches: Document databases
+    property: "`find` gives exactly the documents a plain Python filter over the list would give."
     builds_on: []
   - name: PyGraphDB
     repo: pygraphdb
     folder: pygraphdb
     package: pygraphdb
     teaches: Graph databases
+    property: "Breadth-first search visits every place you can reach, each once, and nowhere else."
     builds_on: []
   - name: PyTSDB
     repo: pytsdb
     folder: pytsdb
     package: pytsdb
     teaches: Time-series databases
+    property: "However you downsample, the buckets' counts and sums add up to the whole logbook's."
     builds_on: []
   - name: PyVecDB
     repo: pyvecdb
     folder: pyvecdb
     package: pyvecdb
     teaches: Vector databases
+    property: "Top-k search finds the same nearest vectors as measuring every one and sorting them."
     builds_on: []
   - name: PyColDB
     repo: pycoldb
     folder: pycoldb
     package: pycoldb
     teaches: Column-family databases
+    property: "Compaction tidies up the files but never changes what a read returns."
     builds_on: []
   - name: PyCrypt
     repo: pycrypt
     folder: pycrypt
     package: pycrypt
     teaches: Cryptography
+    property: "Decrypting with the same shift gives back exactly the text you encrypted."
     builds_on: []
   - name: PyNet
     repo: pynet
     folder: pynet
     package: pynet
     teaches: Computer networking
+    property: "However the bytes are cut up on the way, the receiver gets exactly the frames that were sent."
     builds_on: []
   - name: PyWeb
     repo: pyweb
     folder: pyweb
     package: pyweb
     teaches: HTTP web servers
+    property: "Whatever request head you write out, reading it back gives the very same head."
     builds_on: [PyNet, PyCrypt]
   - name: PyGit
     repo: pygit
     folder: pygit
     package: pygit
     teaches: Version control
+    property: "A file's fingerprint always matches Git's own rule: SHA-1 of `blob <size>`, a zero byte, then the file."
     builds_on: []
   - name: PySearch
     repo: pysearch
     folder: pysearch
     package: pysearch
     teaches: Search engines
+    property: "A search finds exactly what reading every book by hand would find, with the same scores, in the same order."
     builds_on: []
   - name: PyMQ
     repo: pymq
     folder: pymq
     package: pymq
     teaches: Message queues
+    property: "A saved queue loads back with every message, in the same delivery order."
     builds_on: [PyNet]
   - name: PyLLM
     repo: pyllm
     folder: pyllm
     package: pyllm
     teaches: Language models (the brain)
+    property: "`backward()` gets the same slopes as nudging each number a little and measuring."
     builds_on: [Pebble]
   - name: PyStack
     repo: pystack
     folder: pystack
     package: pystack
     teaches: Full-stack integration
+    property: "Whatever a Pebble program stores with `kv_set`, the next run reads back exactly."
     builds_on:
       - PyOS
       - Pebble

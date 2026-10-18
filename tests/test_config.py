@@ -33,6 +33,7 @@ VALID_ENTRY = """\
     folder: {name}
     package: {name}
     teaches: Things
+    property: Things stay put
     builds_on: {builds_on}
 """
 
@@ -85,6 +86,14 @@ class TestValidation:
         path = _write(tmp_path, "projects:\n  - name: A\n    repo: a\n")
         with pytest.raises(SeriesError, match="missing"):
             load_series(path)
+
+    def test_property_field_required(self, tmp_path: Path) -> None:
+        """A project without a property line is rejected, and the error names the field."""
+        text = "projects:\n" + VALID_ENTRY.format(name="A", builds_on="[]").replace(
+            "    property: Things stay put\n", ""
+        )
+        with pytest.raises(SeriesError, match="missing: property"):
+            load_series(_write(tmp_path, text))
 
     def test_duplicate_name_raises_series_error(self, tmp_path: Path) -> None:
         """Two projects with the same name are rejected."""
