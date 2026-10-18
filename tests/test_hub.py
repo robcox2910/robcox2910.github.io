@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 
 import series.sync as sync_module
-from series.config import SERIES_FILE, SeriesError, load_series
-from series.sync import HUB_FILES, check_hub, main, render_home
+from series.config import SERIES_FILE, SITE_ROOT, SeriesError, load_series
+from series.sync import HUB_FILES, _plan_hub, check_hub, main, render_home, render_property_page
 
 SERIES = load_series()
 ROOT = SERIES_FILE.parent
@@ -124,3 +124,25 @@ def test_hub_command_reports_up_to_date(tmp_path: Path, capsys: pytest.CaptureFi
     hub = copy_hub(tmp_path)
     assert main(["hub", "--root", str(hub)]) == 0
     assert "hub: up to date" in capsys.readouterr().out
+
+
+def test_property_page_lists_every_project_in_order() -> None:
+    """Each project links to its property-testing page, then its property, in series.yml order."""
+    page = render_property_page(SERIES)
+    position = 0
+    for project in SERIES:
+        entry = f"[{project.name}]({SITE_ROOT}/{project.repo}/property-testing/)"
+        found = page.find(entry, position)
+        assert found >= position, f"{project.name} is missing or out of order"
+        position = found + len(entry)
+        found = page.find(project.property, position)
+        assert found >= position, f"{project.name}'s property does not follow its link"
+        position = found + len(project.property)
+
+
+def test_hub_plan_includes_property_page(tmp_path: Path) -> None:
+    """An empty hub (just mkdocs.yml and CLAUDE.md) is planned a property-testing page."""
+    for name in ("mkdocs.yml", "CLAUDE.md"):
+        shutil.copyfile(ROOT / name, tmp_path / name)
+    plan = _plan_hub(tmp_path, SERIES)
+    assert plan["docs/property-testing.md"] == render_property_page(SERIES)

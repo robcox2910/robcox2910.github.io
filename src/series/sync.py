@@ -5,7 +5,7 @@
 ``series sync`` clones each project into ``$SERIES_SCRATCH`` (never a local
 checkout), applies the standard on a branch, and opens a pull request;
 ``series hub`` regenerates the hub's own home page, README blocks, CLAUDE.md
-standard and mkdocs nav from ``series.yml`` (``check_hub`` says what would change).
+standard, mkdocs nav and property-testing page from ``series.yml`` (``check_hub`` says what would change).
 """
 
 import argparse
@@ -18,7 +18,7 @@ from pathlib import Path
 
 from series.blocks import BlockError, replace_block, upsert_section_block_with_removed
 from series.claude_md import split_claude_md
-from series.config import SERIES_FILE, Project, SeriesError, load_series
+from series.config import SERIES_FILE, SITE_ROOT, Project, SeriesError, load_series
 from series.render import TEMPLATES, Rendered, apply_mkdocs_blocks, render, render_hub
 from series.tomledit import apply_standard_toml
 
@@ -32,7 +32,7 @@ LOCAL_ROOT = Path("/Users/robcox/development/python")
 SELECT_ARRAY = re.compile(r"^\s*select\s*=\s*\[(.*?)\]", re.DOTALL | re.MULTILINE)
 
 HUB_ROOT = SERIES_FILE.parent
-HUB_FILES = ("README.md", "CLAUDE.md", "mkdocs.yml", "docs/index.md")
+HUB_FILES = ("README.md", "CLAUDE.md", "mkdocs.yml", "docs/index.md", "docs/property-testing.md")
 
 # The home page's learning-path groups. Every project in series.yml must be in
 # exactly one group: a new project goes here too, or `series hub` fails.
@@ -171,10 +171,63 @@ def render_home(series: list[Project]) -> str:
     return "\n".join(lines)
 
 
+# The opening of the hub's property-testing page: the idea, explained once.
+PROPERTY_INTRO = """\
+# Property Testing
+
+Every project in the series is checked with **property-based tests**. Here's
+the idea, once, and then a list of where to see it in action.
+
+## The idea
+
+Imagine you've built a vending machine. The usual way to check it: put in
+a pound, press B4, and see a packet of crisps drop out. That's an **example
+test**. It's useful, but it only tells you about the one snack you thought
+of.
+
+Now imagine a mischievous tester. All night they press every button there is:
+coins and no coins, two buttons at once, a snack that's sold out, the same
+button forty times. For each go they check a single rule, such as:
+
+> Whatever you press, the money you put in always equals the price of what
+> came out plus the change you got back.
+
+That rule is a **property**. It doesn't say which snack comes out. It says
+something that must be true *every* time, whatever happens.
+
+When the tester finds something that breaks the rule, they don't just write
+"it went wrong after about a hundred presses". They play it again with less
+and less -- fewer coins, fewer buttons, smaller numbers -- checking it still
+goes wrong each time, until it's as simple as it can be. That boiling-down is
+called **shrinking**, and it's the best part: the smallest failing input
+usually points straight at the bug.
+
+In Python, the tester is a library called
+[Hypothesis](https://hypothesis.readthedocs.io/). Each project has a page
+that walks through one of its properties, line by line.
+
+## A property from every project
+
+In learning order, each with the rule its page walks through:
+
+"""
+
+
+def render_property_page(series: list[Project]) -> str:
+    """Return the hub's ``docs/property-testing.md``: the idea, then every project's page."""
+    lines = [
+        f"- **[{p.name}]({SITE_ROOT}/{p.repo}/property-testing/)**: {p.property}" for p in series
+    ]
+    return PROPERTY_INTRO + "\n".join(lines) + "\n"
+
+
 def _plan_hub(root: Path, series: list[Project]) -> dict[str, str]:
     """Return every hub file whose content differs from what ``series.yml`` renders."""
     rendered = render_hub(series)
-    updates = {"docs/index.md": render_home(series)}
+    updates = {
+        "docs/index.md": render_home(series),
+        "docs/property-testing.md": render_property_page(series),
+    }
     readme = _read(root / "README.md") or "# Series home\n"
     for pattern, start, end, body in rendered.blocks["README.md"]:
         readme, _ = upsert_section_block_with_removed(
