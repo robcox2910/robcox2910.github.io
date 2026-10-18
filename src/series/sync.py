@@ -297,8 +297,32 @@ In learning order, each with the rule its page walks through:
 """
 
 
+_BLOCK_MARKDOWN = re.compile(r"[#>*+\-|<=~]|\d+[.)]")
+
+
+def _check_one_liner(project: Project) -> None:
+    """Raise ``SeriesError`` unless ``project.property`` is plain one-line prose.
+
+    It is spliced after a list bullet, so a newline would break the list and a
+    leading block character (heading, quote, bullet, table, HTML) would change
+    what the line means.
+    """
+    text = project.property
+    if not text.strip() or "\n" in text or _BLOCK_MARKDOWN.match(text.lstrip()):
+        msg = (
+            f"{project.name}: `property` must be one line of plain text that does not "
+            f"start with a markdown character, got {text!r}"
+        )
+        raise SeriesError(msg)
+
+
 def render_property_page(series: list[Project]) -> str:
-    """Return the hub's ``docs/property-testing.md``: the idea, then every project's page."""
+    """Return the hub's ``docs/property-testing.md``: the idea, then every project's page.
+
+    Raises ``SeriesError`` for a ``property`` that is not a plain one-liner.
+    """
+    for project in series:
+        _check_one_liner(project)
     lines = [
         f"- **[{p.name}]({SITE_ROOT}/{p.repo}/property-testing/)**: {p.property}" for p in series
     ]
