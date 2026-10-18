@@ -8,7 +8,7 @@ import yaml
 
 from series.blocks import upsert_section_block
 from series.config import Project, load_series
-from series.render import Rendered, apply_mkdocs_blocks, render
+from series.render import TEMPLATES, Rendered, apply_mkdocs_blocks, render
 
 
 class _MkdocsLoader(yaml.SafeLoader):
@@ -129,7 +129,7 @@ def test_license_has_2026_rob_cox(tmp_path: Path) -> None:
 def test_render_owns_root_conftest(tmp_path: Path) -> None:
     """The root ``conftest.py`` is an owned file, copied verbatim from the template."""
     rendered, _ = make_repo(tmp_path)
-    template = ROOT / "templates" / "conftest.py"
+    template = TEMPLATES / "conftest.py"
     assert rendered.files["conftest.py"] == template.read_text(encoding="utf-8")
 
 

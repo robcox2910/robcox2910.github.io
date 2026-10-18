@@ -146,3 +146,18 @@ def test_hub_plan_includes_property_page(tmp_path: Path) -> None:
         shutil.copyfile(ROOT / name, tmp_path / name)
     plan = _plan_hub(tmp_path, SERIES)
     assert plan["docs/property-testing.md"] == render_property_page(SERIES)
+
+
+@pytest.mark.parametrize(
+    "bad", ["# Heading", "- item", "> quote", "* bold*", "<b>x</b>", "| a |", "two\nlines", "  "]
+)
+def test_property_page_rejects_markdown_in_a_one_liner(bad: str) -> None:
+    """A property that starts with markdown syntax, or spans lines, is an error."""
+    with pytest.raises(SeriesError, match="property"):
+        render_property_page([replace(SERIES[0], property=bad)])
+
+
+def test_property_page_accepts_inline_code_and_prose() -> None:
+    """Backticks, brackets and colons inside a sentence are fine."""
+    ok = "`find` returns [every] match: always."
+    assert ok in render_property_page([replace(SERIES[0], property=ok)])
