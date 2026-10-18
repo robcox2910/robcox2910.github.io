@@ -1,5 +1,6 @@
 """Tests for rendering the standard for one project."""
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -422,3 +423,21 @@ def test_generated_index_has_no_series_or_docs_block(tmp_path: Path, readme: str
     assert "## Documentation" not in index
     assert "PyKV" not in index
     assert index == "# PyDB\n\nHello.\n\n## License\n\nMIT\n"
+
+
+def test_pre_commit_spares_pasted_output_in_property_page(tmp_path: Path) -> None:
+    """The property page pastes real pytest output, so whitespace hooks skip it."""
+    rendered, _ = make_repo(tmp_path)
+    config = yaml.safe_load(rendered.files[".pre-commit-config.yaml"])
+    hooks = {h["id"]: h for entry in config["repos"] for h in entry["hooks"]}
+    for hook_id in ("trailing-whitespace", "end-of-file-fixer"):
+        pattern = re.compile(hooks[hook_id]["exclude"])
+        assert pattern.search("docs/property-testing.md")
+        assert not pattern.search("docs/index.md")
+
+
+def test_pre_commit_runs_python_hooks_on_python_314(tmp_path: Path) -> None:
+    """Hooks parse 3.14 syntax such as `type X = ...`, so they need a 3.14 interpreter."""
+    rendered, _ = make_repo(tmp_path)
+    config = yaml.safe_load(rendered.files[".pre-commit-config.yaml"])
+    assert config["default_language_version"] == {"python": "python3.14"}
