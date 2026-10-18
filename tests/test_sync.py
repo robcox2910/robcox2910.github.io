@@ -412,6 +412,10 @@ def test_unchanged_lock_is_not_listed_as_changed(
     (clone / "uv.lock").write_text("same\n", encoding="utf-8")
     result = apply_to_tree(clone, PYDB, SERIES)
     assert "pyproject.toml" in result.changed
-    monkeypatch.setattr(sync_module, "_run", lambda cmd, cwd=None: "")  # noqa: ARG005
+
+    def run(cmd: list[str], cwd: Path | None = None) -> str:  # noqa: ARG001
+        return ""
+
+    monkeypatch.setattr(sync_module, "_run", run)
     sync_module._refresh_lock(clone, result)
     assert "uv.lock" not in result.changed
