@@ -80,6 +80,24 @@ def test_apply_twice_is_idempotent(tmp_path: Path) -> None:
     assert snapshot(repo) == after_first
 
 
+def test_sync_writes_conftest_and_leaves_tests_conftest_alone(tmp_path: Path) -> None:
+    """The root conftest.py is owned; a repo's own tests/conftest.py never is."""
+    repo = make_repo(tmp_path)
+    own = repo / "tests" / "conftest.py"
+    own.parent.mkdir()
+    own.write_bytes(b"# mine\nimport pytest\n")
+    apply_to_tree(repo, PYDB, SERIES)
+    template = Path(__file__).resolve().parent.parent / "templates" / "conftest.py"
+    assert (repo / "conftest.py").read_text(encoding="utf-8") == template.read_text(
+        encoding="utf-8"
+    )
+    assert own.read_bytes() == b"# mine\nimport pytest\n"
+    before = snapshot(repo)
+    result = apply_to_tree(repo, PYDB, SERIES)
+    assert snapshot(repo) == before
+    assert result.changed == []
+
+
 def test_check_reports_drift_then_clean_after_apply(tmp_path: Path) -> None:
     """Check lists paths without writing, and is empty once applied."""
     repo = make_repo(tmp_path)

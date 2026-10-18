@@ -244,6 +244,7 @@ def render(project: Project, series: list[Project], repo_root: Path) -> Rendered
     rendered = Rendered(
         files={
             "LICENSE": (TEMPLATES / "LICENSE").read_text(encoding="utf-8"),
+            "conftest.py": (TEMPLATES / "conftest.py").read_text(encoding="utf-8"),
             ".pre-commit-config.yaml": _template(
                 "pre-commit-config.yaml.j2",
                 commitizen=_has_commitizen(repo_root / "pyproject.toml"),

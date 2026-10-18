@@ -100,6 +100,13 @@ def test_license_has_2026_rob_cox(tmp_path: Path) -> None:
     assert rendered.files["LICENSE"] == (ROOT / "LICENSE").read_text(encoding="utf-8")
 
 
+def test_render_owns_root_conftest(tmp_path: Path) -> None:
+    """The root ``conftest.py`` is an owned file, copied verbatim from the template."""
+    rendered, _ = make_repo(tmp_path)
+    template = ROOT / "templates" / "conftest.py"
+    assert rendered.files["conftest.py"] == template.read_text(encoding="utf-8")
+
+
 def test_ci_caller_uses_v1(tmp_path: Path) -> None:
     """The CI caller points at the shared workflow at v1."""
     rendered, _ = make_repo(tmp_path)
