@@ -381,8 +381,12 @@ def _run(cmd: list[str], cwd: Path | None = None) -> str:  # pragma: no cover
 
 def _lock_is_stale(root: Path) -> bool:  # pragma: no cover
     """Return whether ``uv lock --check`` says ``root``'s ``uv.lock`` is out of date."""
-    done = subprocess.run(  # noqa: S603, S607 - fixed argument list, no shell
-        ["uv", "lock", "--check"], cwd=root, check=False, capture_output=True, text=True
+    done = subprocess.run(
+        ["uv", "lock", "--check"],  # noqa: S607 - uv is looked up on PATH like gh and git
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
     )
     if done.returncode not in (0, 1):
         msg = f"`uv lock --check` failed: {done.stderr.strip() or done.stdout.strip()}"

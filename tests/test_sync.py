@@ -8,6 +8,7 @@ import pytest
 import series.sync as sync_module
 from series.blocks import BlockError
 from series.config import Project, load_series
+from series.render import TEMPLATES
 from series.sync import (
     SyncError,
     SyncResult,
@@ -87,7 +88,7 @@ def test_sync_writes_conftest_and_leaves_tests_conftest_alone(tmp_path: Path) ->
     own.parent.mkdir()
     own.write_bytes(b"# mine\nimport pytest\n")
     apply_to_tree(repo, PYDB, SERIES)
-    template = Path(__file__).resolve().parent.parent / "templates" / "conftest.py"
+    template = TEMPLATES / "conftest.py"
     assert (repo / "conftest.py").read_text(encoding="utf-8") == template.read_text(
         encoding="utf-8"
     )
@@ -353,7 +354,7 @@ def test_sync_does_not_relock_when_pyproject_is_unchanged(
     assert "uv.lock" not in result.changed
 
 
-def _check_runner(monkeypatch: pytest.MonkeyPatch, *, on_standard: bool, stale: bool) -> Path:
+def _check_runner(monkeypatch: pytest.MonkeyPatch, *, on_standard: bool, stale: bool) -> None:
     """Fake a clone for ``--check``: optionally already on the standard, lock stale or not."""
 
     def run(cmd: list[str], cwd: Path | None = None) -> str:  # noqa: ARG001
@@ -367,8 +368,11 @@ def _check_runner(monkeypatch: pytest.MonkeyPatch, *, on_standard: bool, stale: 
         return ""
 
     monkeypatch.setattr(sync_module, "_run", run)
-    monkeypatch.setattr(sync_module, "_lock_is_stale", lambda root: stale)  # noqa: ARG005
-    return Path()
+
+    def lock_is_stale(root: Path) -> bool:  # noqa: ARG001
+        return stale
+
+    monkeypatch.setattr(sync_module, "_lock_is_stale", lock_is_stale)
 
 
 def test_check_reports_a_stale_lock_as_drift(
