@@ -1,8 +1,9 @@
 """Set the shared standard keys in a ``pyproject.toml`` without disturbing the rest.
 
 Three things belong to the series standard: the ruff rule groups, the pyright
-mode and the Hypothesis floor in the ``dev`` extra. Everything else (ignores, per-file ignores, coverage floors,
-comments, ordering) is left exactly as the project wrote it.
+mode and the Hypothesis floor in the ``dev`` extra. Everything else (ignores,
+per-file ignores, coverage floors, comments, ordering) is left exactly as the
+project wrote it.
 """
 
 from typing import Any, cast
@@ -47,12 +48,21 @@ def _meets_floor(entry: str) -> bool:
     )
 
 
+def _raised(entry: str) -> str:
+    """Return ``entry`` with its version specifier replaced by the floor, extras and marker kept."""
+    req = Requirement(entry)
+    extras = f"[{','.join(sorted(req.extras))}]" if req.extras else ""
+    marker = f" ; {req.marker}" if req.marker is not None else ""
+    return f"{HYPOTHESIS_FLOOR.replace('hypothesis', 'hypothesis' + extras, 1)}{marker}"
+
+
 def ensure_dev_floor(doc: TOMLDocument) -> None:
     """Make ``[project.optional-dependencies] dev`` require Hypothesis at the floor or above.
 
-    A Hypothesis entry that already has a higher ``>=`` floor is the repo's choice
-    and stays. Any other entry (a lower floor, an exact pin) is replaced in place;
-    if there is none the floor is appended. Missing tables are created. Other
+    Every Hypothesis entry is checked. One that already has a higher ``>=`` floor
+    is the repo's choice and stays. Any other (a lower floor, an exact pin) gets
+    the floor in place, keeping its extras and environment marker; if there is
+    no entry the floor is appended. Missing tables are created. Other
     extras are never touched.
     """
     project = _table(doc, "project")
@@ -60,12 +70,14 @@ def ensure_dev_floor(doc: TOMLDocument) -> None:
     if "dev" not in extras:
         extras["dev"] = tomlkit.array()
     dev = extras["dev"]
+    found = False
     for index, entry in enumerate(dev):
         if _is_hypothesis(str(entry)):
+            found = True
             if not _meets_floor(str(entry)):
-                dev[index] = HYPOTHESIS_FLOOR
-            return
-    dev.append(HYPOTHESIS_FLOOR)
+                dev[index] = _raised(str(entry))
+    if not found:
+        dev.append(HYPOTHESIS_FLOOR)
 
 
 def apply_standard_toml(text: str) -> str:

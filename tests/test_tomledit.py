@@ -2,6 +2,8 @@
 
 import tomllib
 
+from packaging.requirements import Requirement
+
 from series.tomledit import HYPOTHESIS_FLOOR, PYRIGHT_MODE, RUFF_SELECT, apply_standard_toml
 
 EXPECTED_GROUPS = 37
@@ -102,3 +104,24 @@ def test_floor_is_idempotent() -> None:
     """A second run changes nothing."""
     once = apply_standard_toml('[project.optional-dependencies]\ndev = ["hypothesis>=6.1"]\n')
     assert apply_standard_toml(once) == once
+
+
+def test_every_hypothesis_entry_is_enforced() -> None:
+    """A second, lower hypothesis entry is raised too, not skipped."""
+    text = '[project.optional-dependencies]\ndev = ["hypothesis>=7.0", "hypothesis>=6.0"]\n'
+    assert _dev(text) == ["hypothesis>=7.0", HYPOTHESIS_FLOOR]
+
+
+def test_extras_and_markers_survive_a_raise() -> None:
+    """Raising the floor keeps the entry's extras and environment marker."""
+    text = (
+        "[project.optional-dependencies]\n"
+        "dev = [\"hypothesis[cli,pytz]==6.0 ; python_version >= '3.12'\"]\n"
+    )
+    (entry,) = _dev(text)
+    req = Requirement(entry)
+    assert req.name == "hypothesis"
+    assert req.extras == {"cli", "pytz"}
+    assert str(req.specifier) == ">=6.170"
+    assert req.marker is not None
+    assert str(req.marker) == 'python_version >= "3.12"'
