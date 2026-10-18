@@ -355,6 +355,34 @@ def _run(cmd: list[str], cwd: Path | None = None) -> str:  # pragma: no cover
     return done.stdout
 
 
+def _lock_is_stale(root: Path) -> bool:  # pragma: no cover
+    """Return whether ``uv lock --check`` says ``root``'s ``uv.lock`` is out of date."""
+    done = subprocess.run(  # noqa: S603, S607 - fixed argument list, no shell
+        ["uv", "lock", "--check"], cwd=root, check=False, capture_output=True, text=True
+    )
+    if done.returncode not in (0, 1):
+        msg = f"`uv lock --check` failed: {done.stderr.strip() or done.stdout.strip()}"
+        raise SyncError(msg)
+    return done.returncode == 1
+
+
+def _refresh_lock(clone: Path, result: SyncResult) -> None:
+    """Re-lock ``clone`` after its ``pyproject.toml`` changed, so CI's ``--locked`` passes."""
+    lock = clone / "uv.lock"
+    if "pyproject.toml" in result.changed and lock.is_file():
+        _run(["uv", "lock"], clone)
+        result.changed.append("uv.lock")
+
+
+def _check_lock(clone: Path, drift: list[str]) -> list[str]:
+    """Return ``drift`` plus ``uv.lock`` when the lock is, or is about to be, stale."""
+    if not (clone / "uv.lock").is_file():
+        return drift
+    if "pyproject.toml" in drift or _lock_is_stale(clone):
+        return [*drift, "uv.lock"]
+    return drift
+
+
 def _pr_body(result: SyncResult) -> str:
     lines = ["Brings this repo onto the shared series standard.", "", "## Changed files", ""]
     lines += [f"- `{path}`" for path in result.changed]
@@ -388,7 +416,7 @@ def _sync_one(project: Project, series: list[Project], scratch: Path, *, check: 
         ]
     )  # fmt: skip
     if check:
-        drift = check_tree(clone, project, series)
+        drift = _check_lock(clone, check_tree(clone, project, series))
         for path in drift:
             print(f"{project.repo}: drift in {path}")  # noqa: T201
         if not drift:
@@ -396,6 +424,7 @@ def _sync_one(project: Project, series: list[Project], scratch: Path, *, check: 
         return bool(drift)
     _run(["git", "switch", "-c", BRANCH], clone)
     result = apply_to_tree(clone, project, series)
+    _refresh_lock(clone, result)
     if not result.changed:
         print(f"{project.repo}: already on the standard")  # noqa: T201
         return False

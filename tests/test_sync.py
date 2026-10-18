@@ -299,3 +299,100 @@ def test_check_with_drift_and_no_failures_exits_1(
     monkeypatch.setattr(sync_module, "_run", _fake_run([]))
     assert main(["sync", "--check", "--repo", "pydb"]) == DRIFT
     assert "pydb: drift in" in capsys.readouterr().out
+
+
+def _repo_runner(calls: list[list[str]], *, lock: bool = True):
+    """Return a ``_run`` stand-in that clones a fake repo and records every call.
+
+    ``uv lock`` writes a ``uv.lock`` in the clone (when ``lock``), as the real one would.
+    """
+
+    def run(cmd: list[str], cwd: Path | None = None) -> str:
+        calls.append(cmd)
+        if cmd[:3] == ["gh", "repo", "clone"]:
+            dest = Path(cmd[4])
+            dest.mkdir()
+            make_repo(dest)
+            (dest / "uv.lock").write_text("old lock\n", encoding="utf-8")
+        elif cmd[:2] == ["uv", "lock"] and lock and cwd is not None:
+            (cwd / "uv.lock").write_text("new lock\n", encoding="utf-8")
+        return "https://example.invalid/pr/1"
+
+    return run
+
+
+def test_sync_relocks_when_pyproject_changes_and_commits_the_lock(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """``uv lock`` runs after the files are written and before ``git add``."""
+    calls: list[list[str]] = []
+    monkeypatch.setattr(sync_module, "_run", _repo_runner(calls))
+    sync_module._sync_one(PYDB, SERIES, tmp_path, check=False)
+    names = [c[0:2] for c in calls]
+    assert ["uv", "lock"] in names
+    assert names.index(["uv", "lock"]) < names.index(["git", "add"])
+    assert (tmp_path / PYDB.repo / "uv.lock").read_text(encoding="utf-8") == "new lock\n"
+
+
+def test_sync_does_not_relock_when_pyproject_is_unchanged(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """No pyproject change, no ``uv lock``."""
+    calls: list[list[str]] = []
+    clone = tmp_path / PYDB.repo
+    clone.mkdir()
+    make_repo(clone)
+    apply_to_tree(clone, PYDB, SERIES)
+    (clone / "README.md").write_text("# PyDB\n", encoding="utf-8")
+    (clone / "uv.lock").write_text("old lock\n", encoding="utf-8")
+    monkeypatch.setattr(sync_module, "_run", _repo_runner(calls))
+    result = apply_to_tree(clone, PYDB, SERIES)
+    assert "pyproject.toml" not in result.changed
+    sync_module._refresh_lock(clone, result)
+    assert not any(c[:2] == ["uv", "lock"] for c in calls)
+    assert "uv.lock" not in result.changed
+
+
+def _check_runner(monkeypatch: pytest.MonkeyPatch, *, on_standard: bool, stale: bool) -> Path:
+    """Fake a clone for ``--check``: optionally already on the standard, lock stale or not."""
+
+    def run(cmd: list[str], cwd: Path | None = None) -> str:  # noqa: ARG001
+        if cmd[:3] == ["gh", "repo", "clone"]:
+            dest = Path(cmd[4])
+            dest.mkdir()
+            make_repo(dest)
+            if on_standard:
+                apply_to_tree(dest, PYDB, SERIES)
+            (dest / "uv.lock").write_text("lock\n", encoding="utf-8")
+        return ""
+
+    monkeypatch.setattr(sync_module, "_run", run)
+    monkeypatch.setattr(sync_module, "_lock_is_stale", lambda root: stale)  # noqa: ARG005
+    return Path()
+
+
+def test_check_reports_a_stale_lock_as_drift(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """With pyproject on the standard but ``uv.lock`` stale, ``--check`` names the lock."""
+    _check_runner(monkeypatch, on_standard=True, stale=True)
+    assert sync_module._sync_one(PYDB, SERIES, tmp_path, check=True) is True
+    assert "pydb: drift in uv.lock" in capsys.readouterr().out
+
+
+def test_check_is_clean_when_the_lock_is_fresh(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A fresh lock on a repo already on the standard is clean."""
+    _check_runner(monkeypatch, on_standard=True, stale=False)
+    assert sync_module._sync_one(PYDB, SERIES, tmp_path, check=True) is False
+    assert "pydb: clean" in capsys.readouterr().out
+
+
+def test_check_flags_the_lock_when_pyproject_will_change(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A pyproject that will change also means the lock will, whatever it says now."""
+    _check_runner(monkeypatch, on_standard=False, stale=False)
+    assert sync_module._sync_one(PYDB, SERIES, tmp_path, check=True) is True
+    assert "pydb: drift in uv.lock" in capsys.readouterr().out
