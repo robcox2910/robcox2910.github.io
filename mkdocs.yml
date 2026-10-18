@@ -1,11 +1,13 @@
 site_name: From scratch in Python
 site_url: https://robcox2910.github.io/
+site_description: "Build real systems from scratch in Python: an operating system, a compiler, databases, networking and a language model, explained for learners aged 12+."
 repo_url: https://github.com/robcox2910/robcox2910.github.io
 repo_name: robcox2910/robcox2910.github.io
 
 # theme:start
 theme:
   name: material
+  custom_dir: overrides
   palette:
     - scheme: default
       primary: deep-purple
@@ -25,6 +27,13 @@ theme:
     - navigation.expand
     - toc.integrate
     - search.highlight
+
+# Social cards need cairo, so they are off unless SOCIAL_CARDS is set (the
+# shared docs workflow sets it). A repo must not add its own plugins key.
+plugins:
+  - search
+  - social:
+      enabled: !ENV [SOCIAL_CARDS, false]
 # theme:end
 
 exclude_docs: |

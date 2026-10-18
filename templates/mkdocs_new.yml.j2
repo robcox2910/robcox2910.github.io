@@ -1,5 +1,8 @@
 site_name: {{ project.name }}
 site_url: {{ project.site_url }}
+{% if project.description %}
+site_description: {{ project.description | tojson }}
+{% endif %}
 repo_url: {{ project.github_url }}
 repo_name: robcox2910/{{ project.repo }}
 

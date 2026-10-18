@@ -8,7 +8,9 @@ The ``Rendered`` contract
 -------------------------
 ``files`` maps a repo-relative path to the complete content of a file the
 sync owns outright: ``LICENSE``, ``.pre-commit-config.yaml``,
-``.github/workflows/ci.yml`` and ``.github/workflows/docs.yml``. When the
+``.github/workflows/ci.yml``, ``.github/workflows/docs.yml`` and
+``overrides/main.html`` (the theme's ``custom_dir``, which carries the
+analytics script). When the
 repo has no ``mkdocs.yml`` it also holds a whole ``mkdocs.yml``, and when it
 has no ``docs/index.md`` it holds one made from the README, minus the
 series and docs blocks (the site's series nav already links the series).
@@ -26,6 +28,10 @@ series and docs blocks (the site's series nav already links the series).
   nav entries, pattern ``None``. They cannot be applied with
   ``replace_block`` alone (the theme replaces a top-level mapping and the nav
   entry is indented), so apply them with ``apply_mkdocs_blocks(text, rendered)``.
+
+``site_description`` is the project's one-line pitch; ``apply_mkdocs_blocks``
+sets the top-level ``site_description`` key to it (after ``site_url``) unless
+it is empty.
 
 ``nav_fallback`` is a ready-made ``nav:`` mapping that ``apply_mkdocs_blocks``
 appends when an existing ``mkdocs.yml`` has no ``nav``.
@@ -49,7 +55,7 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from series.blocks import BlockError, remove_block, upsert_section_block
 from series.claude_md import END as CLAUDE_END
 from series.claude_md import START as CLAUDE_START
-from series.config import SITE_ROOT, Project
+from series.config import GOATCOUNTER_CODE, HUB_DESCRIPTION, SITE_ROOT, Project
 
 TEMPLATES = Path(__file__).resolve().parent.parent.parent / "templates"
 HOME_URL = f"{SITE_ROOT}/"
@@ -72,6 +78,7 @@ HTML_COVERAGE = re.compile(r"pytest[^\n]*--cov-report[= ]html|coverage-report:\s
 MARKDOWN_LINK = re.compile(r"(!?)\[([^\]]*)\]\(([^)\s]+)((?:\s+\"[^\"]*\")?)\)")
 URL_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 PLAIN_TITLE = re.compile(r"[\w .()&/-]+")
+OVERRIDES_MAIN = "overrides/main.html"
 
 Block = tuple[str | None, str, str, str]
 
@@ -91,6 +98,26 @@ class Rendered:
     files: dict[str, str] = field(default_factory=lambda: dict[str, str]())
     blocks: dict[str, list[Block]] = field(default_factory=lambda: dict[str, list[Block]]())
     nav_fallback: str = ""
+    site_description: str = ""
+
+
+def overrides_main(goatcounter: str = GOATCOUNTER_CODE) -> str:
+    """Return the theme override page, with the GoatCounter script when a code is set.
+
+    Material's ``analytics`` block is the hook for extra tracking scripts. With
+    no code the page only extends the base, so the site looks exactly as before.
+    """
+    lines = ['{% extends "base.html" %}']
+    if goatcounter:
+        lines += [
+            "",
+            "{% block analytics %}",
+            "  {{ super() }}",
+            f'  <script data-goatcounter="https://{goatcounter}.goatcounter.com/count"',
+            '          async src="https://gc.zgo.at/count.js"></script>',
+            "{% endblock %}",
+        ]
+    return "\n".join(lines) + "\n"
 
 
 def _template(name: str, **values: object) -> str:
@@ -225,6 +252,7 @@ def render_hub(series: list[Project]) -> Rendered:
             "mkdocs.yml": _mkdocs_blocks(bodies),
         },
         nav_fallback=f"nav:\n  - Home: index.md\n{nav_block}\n",
+        site_description=HUB_DESCRIPTION,
     )
 
 
@@ -251,11 +279,13 @@ def render(project: Project, series: list[Project], repo_root: Path) -> Rendered
             ),
             ".github/workflows/ci.yml": _template("ci.yml"),
             ".github/workflows/docs.yml": _template("docs.yml", coverage_report=coverage),
+            OVERRIDES_MAIN: overrides_main(),
         },
         blocks={
             "README.md": _readme_blocks(bodies),
             "CLAUDE.md": [(None, CLAUDE_START, CLAUDE_END, bodies.standard)],
         },
+        site_description=project.description,
     )
     pages = _nav_pages(repo_root)
     nav_block = _marked(NAV_START, NAV_END, nav_body)
@@ -394,6 +424,19 @@ def _apply_exclude_docs(lines: list[str]) -> None:
         ]
 
 
+def _apply_site_description(lines: list[str], description: str) -> None:
+    """Set the top-level ``site_description``: replace it, or add it after ``site_url``."""
+    if not description:
+        return
+    line = f"site_description: {json.dumps(description, ensure_ascii=False)}"
+    region = _key_region(lines, "site_description")
+    if region is not None:
+        lines[region[0] : region[1]] = [line]
+        return
+    after = _key_region(lines, "site_url") or _key_region(lines, "site_name")
+    lines.insert(after[1] if after is not None else 0, line)
+
+
 def apply_mkdocs_blocks(text: str, rendered: Rendered) -> str:
     """Return ``text`` (an existing ``mkdocs.yml``) with the series blocks applied.
 
@@ -401,11 +444,12 @@ def apply_mkdocs_blocks(text: str, rendered: Rendered) -> str:
     mapping, else insert after ``repo_name:`` (or at the end). Nav: reuse the
     markers, else make the block the last item of the top-level ``nav:`` list,
     else append ``rendered.nav_fallback``. Also ensures ``exclude_docs``
-    covers ``superpowers/``. Applying twice changes nothing the second time.
+    covers ``superpowers/`` and sets ``site_description`` when there is one. Applying twice changes nothing the second time.
     """
     entries = {entry[1]: entry[3] for entry in rendered.blocks.get("mkdocs.yml", [])}
     lines = text.rstrip("\n").split("\n") if text.strip() else []
     _apply_theme(lines, entries[THEME_START])
     _apply_nav(lines, entries[NAV_START], rendered.nav_fallback)
     _apply_exclude_docs(lines)
+    _apply_site_description(lines, rendered.site_description)
     return "\n".join(lines) + "\n"

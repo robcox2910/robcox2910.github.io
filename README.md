@@ -50,6 +50,26 @@ when a repo failed (each failure is named, and the other repos still run). Use
 a fresh, empty `SERIES_SCRATCH` for every run: an existing clone is refused,
 never reused. `uv run series hub --check` does the same for this repo.
 
+### Discoverability: descriptions, topics, analytics and social cards
+
+- Each project's `description` in `series.yml` becomes its docs site's
+  `site_description` (the snippet search engines and link previews show) and
+  its GitHub About text. The sync owns `site_description`.
+- `uv run series about` sets every repo's GitHub description, website (its
+  docs site) and topics (`COMMON_TOPICS` in `src/series/config.py`, then the
+  project's own `topics`). `--check` reports drift and changes nothing;
+  `--repo <repo>` limits it to one repo. It needs a `gh` login that can edit
+  the repos. The hub repo is included.
+- Analytics: `GOATCOUNTER_CODE` in `src/series/config.py` adds the GoatCounter
+  script through `overrides/main.html` (the theme's `custom_dir`), which the
+  sync writes into every project. One GoatCounter site counts all 18 sites;
+  pages are told apart by path. Clear the code to remove the script.
+- Social cards: the theme block turns on Material's `social` plugin only when
+  `SOCIAL_CARDS` is set, so local `mkdocs serve` needs no cairo. The shared
+  `docs.yml` installs cairo and sets it, so cards appear once `v1` points at a
+  commit with that change. Because the theme block now holds `plugins:`, a
+  project must not add its own `plugins` key; add the plugin to the template.
+
 ### The `v1` workflows
 
 Projects call `python-ci.yml@v1` and `docs.yml@v1` from this repo, and `v1` is

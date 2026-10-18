@@ -1,6 +1,7 @@
 """Tests for rendering the standard for one project."""
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
@@ -8,6 +9,31 @@ import yaml
 from series.blocks import upsert_section_block
 from series.config import Project, load_series
 from series.render import Rendered, apply_mkdocs_blocks, render
+
+
+class _MkdocsLoader(yaml.SafeLoader):
+    """A safe loader that reads mkdocs tags (``!ENV``, ``!!python/name:``) as plain values."""
+
+
+def _plain(loader: yaml.SafeLoader, _suffix: str, node: yaml.Node) -> object:
+    """Read a tagged node as the value it would have without the tag."""
+    if isinstance(node, yaml.SequenceNode):
+        return loader.construct_sequence(node)
+    if isinstance(node, yaml.MappingNode):
+        return loader.construct_mapping(node)
+    return loader.construct_scalar(node)  # type: ignore[arg-type]
+
+
+_MkdocsLoader.add_multi_constructor("!", _plain)  # pyright: ignore[reportUnknownMemberType]
+_MkdocsLoader.add_multi_constructor(  # pyright: ignore[reportUnknownMemberType]
+    "tag:yaml.org,2002:python/", _plain
+)
+
+
+def load_mkdocs(text: str) -> Any:
+    """Parse an mkdocs.yml text, keeping tagged values as plain data."""
+    return yaml.load(text, Loader=_MkdocsLoader)  # noqa: S506 - SafeLoader subclass
+
 
 SERIES = load_series()
 SERIES_COUNT = 17
@@ -184,7 +210,7 @@ def test_new_mkdocs_for_repo_without_docs_index(tmp_path: Path) -> None:
     readme = "# PyDB\n\nSee [the guide](docs/guide.md) and [site](https://x.dev) [top](#a).\n"
     rendered, _ = make_repo(tmp_path, {"README.md": readme})
     assert "mkdocs.yml" not in rendered.blocks
-    config = yaml.safe_load(rendered.files["mkdocs.yml"].replace("!!python/name:", ""))
+    config = load_mkdocs(rendered.files["mkdocs.yml"])
     assert config["site_name"] == "PyDB"
     assert config["site_url"] == PYDB.site_url
     assert config["repo_url"] == PYDB.github_url
@@ -207,7 +233,7 @@ def test_new_mkdocs_lists_docs_pages_sorted(tmp_path: Path) -> None:
         "docs/a/page.md": "no heading\n",
     }
     rendered, _ = make_repo(tmp_path, files)
-    config = yaml.safe_load(rendered.files["mkdocs.yml"].replace("!!python/name:", ""))
+    config = load_mkdocs(rendered.files["mkdocs.yml"])
     pages = [next(iter(item.values())) for item in config["nav"][:-1]]
     assert pages == ["index.md", "a/page.md", "b.md"]
 
@@ -267,7 +293,7 @@ def applied(tmp_path: Path, text: str) -> tuple[str, dict[str, object]]:
     """Render for a repo with mkdocs ``text`` and return the applied text and its YAML."""
     rendered, _ = make_repo(tmp_path, {"mkdocs.yml": text, "docs/index.md": "# X\n"})
     out = apply_mkdocs_blocks(text, rendered)
-    return out, yaml.safe_load(out.replace("!!python/name:", ""))
+    return out, load_mkdocs(out)
 
 
 def test_apply_replaces_top_level_theme_and_appends_nav(tmp_path: Path) -> None:
@@ -314,7 +340,7 @@ def test_apply_builds_nav_when_missing(tmp_path: Path) -> None:
         {"mkdocs.yml": "site_name: X\n", "docs/index.md": "# X\n", "docs/b.md": "# B\n"},
     )
     out = apply_mkdocs_blocks("site_name: X\n", rendered)
-    config = yaml.safe_load(out.replace("!!python/name:", ""))
+    config = load_mkdocs(out)
     assert config["nav"][0] == {"Home": "index.md"}
     assert config["nav"][1] == {"B": "b.md"}
     assert "The series" in config["nav"][-1]
