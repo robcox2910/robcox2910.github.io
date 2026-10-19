@@ -59,9 +59,11 @@ HUB_FILES = (
     "mkdocs.yml",
     "docs/index.md",
     "docs/property-testing.md",
+    "docs/robots.txt",
     OVERRIDES_MAIN,
 )
 HUB_REPO = f"{GITHUB_OWNER}.github.io"
+ROBOTS_TXT = "docs/robots.txt"
 
 # The home page's learning-path groups. Every project in series.yml must be in
 # exactly one group: a new project goes here too, or `series hub` fails.
@@ -329,12 +331,24 @@ def render_property_page(series: list[Project]) -> str:
     return PROPERTY_INTRO + "\n".join(lines) + "\n"
 
 
+def render_robots(series: list[Project]) -> str:
+    """Return the site's ``robots.txt``: let every crawler in, and list every sitemap.
+
+    It sits at the root of the hub site, which is the root of the whole
+    domain, so it is the one robots file crawlers read for all 18 sites.
+    """
+    sitemaps = [f"{SITE_ROOT}/sitemap.xml", *(f"{p.site_url}sitemap.xml" for p in series)]
+    lines = ["User-agent: *", "Allow: /", "", *(f"Sitemap: {url}" for url in sitemaps)]
+    return "\n".join(lines) + "\n"
+
+
 def _plan_hub(root: Path, series: list[Project]) -> dict[str, str]:
     """Return every hub file whose content differs from what ``series.yml`` renders."""
     rendered = render_hub(series)
     updates = {
         "docs/index.md": render_home(series),
         "docs/property-testing.md": render_property_page(series),
+        ROBOTS_TXT: render_robots(series),
         OVERRIDES_MAIN: overrides_main(),
     }
     readme = _read(root / "README.md") or "# Series home\n"

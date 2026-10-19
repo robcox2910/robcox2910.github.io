@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://robcox2910.github.io/sitemap.xml
+Sitemap: https://robcox2910.github.io/py-os/sitemap.xml
+Sitemap: https://robcox2910.github.io/pebble-lang/sitemap.xml
+Sitemap: https://robcox2910.github.io/pydb/sitemap.xml
+Sitemap: https://robcox2910.github.io/pykv/sitemap.xml
+Sitemap: https://robcox2910.github.io/pydoc-db/sitemap.xml
+Sitemap: https://robcox2910.github.io/pygraphdb/sitemap.xml
+Sitemap: https://robcox2910.github.io/pytsdb/sitemap.xml
+Sitemap: https://robcox2910.github.io/pyvecdb/sitemap.xml
+Sitemap: https://robcox2910.github.io/pycoldb/sitemap.xml
+Sitemap: https://robcox2910.github.io/pycrypt/sitemap.xml
+Sitemap: https://robcox2910.github.io/pynet/sitemap.xml
+Sitemap: https://robcox2910.github.io/pyweb/sitemap.xml
+Sitemap: https://robcox2910.github.io/pygit/sitemap.xml
+Sitemap: https://robcox2910.github.io/pysearch/sitemap.xml
+Sitemap: https://robcox2910.github.io/pymq/sitemap.xml
+Sitemap: https://robcox2910.github.io/pyllm/sitemap.xml
+Sitemap: https://robcox2910.github.io/pystack/sitemap.xml
