@@ -51,7 +51,7 @@ This repo is the series home: `series.yml` lists the projects, `src/series` load
 ## Maintaining the series
 
 - Full runbook: "Maintaining the series" in `README.md`
-- `uv run series hub` regenerates this repo's `docs/index.md`, `docs/property-testing.md`, README series/docs blocks, CLAUDE.md standard block and mkdocs series nav from `series.yml`; `tests/test_hub.py` fails when any of them drift, so re-run it after every `series.yml` or template edit
+- `uv run series hub` regenerates this repo's `docs/index.md`, `docs/property-testing.md`, `docs/robots.txt` (every sitemap), README series/docs blocks, CLAUDE.md standard block and mkdocs series nav from `series.yml`; `tests/test_hub.py` fails when any of them drift, so re-run it after every `series.yml` or template edit
 - Add a project: copy a repo, then fix its mkdocs `site_name`/`site_url`/`repo_url`/`repo_name` (the sync doesn't own them); add it to `series.yml` (with its `property` one-liner) and to `HOME_GROUPS` in `src/series/sync.py` (an ungrouped project is an error); enable Pages with `gh api -X POST repos/robcox2910/<repo>/pages -f build_type=workflow`; `series sync --repo <repo>`; full `series sync`; `series hub`
 - `series sync` and `series sync --check` need a fresh, empty `SERIES_SCRATCH` each run (an existing clone is refused); `--check` exits 0 clean, 1 drift (a stale `uv.lock` counts), 2 a repo failed; when a sync changes a repo's `pyproject.toml` it runs `uv lock` there and commits the lock
 - `v1` policy: test a workflow change by pointing one project PR's caller at the branch commit SHA before moving `v1`; consider immutable `v1.0.x` tags alongside; a breaking change gets `v2`, a template change and one sync

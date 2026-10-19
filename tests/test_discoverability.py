@@ -13,7 +13,16 @@ from series.config import (
     load_series,
 )
 from series.render import OVERRIDES_MAIN, Rendered, apply_mkdocs_blocks, overrides_main, render
-from series.sync import HUB_REPO, About, about_drift, about_settings, render_home
+from series.sync import (
+    HUB_FILES,
+    HUB_REPO,
+    ROBOTS_TXT,
+    About,
+    about_drift,
+    about_settings,
+    render_home,
+    render_robots,
+)
 
 SERIES = load_series()
 SEARCH_SNIPPET_LIMIT = 160
@@ -149,6 +158,24 @@ class TestHomePage:
         assert "aged 12 and up" in home
         assert "## How to start" in home
         assert home.index("## How to start") < home.index("## Start here")
+
+
+class TestRobots:
+    """The hub's robots.txt lets every crawler in and names every sitemap."""
+
+    def test_allows_everything_and_lists_every_sitemap(self) -> None:
+        """One sitemap line for the hub, then one per project in series order."""
+        lines = render_robots(SERIES).splitlines()
+        assert lines[:2] == ["User-agent: *", "Allow: /"]
+        sitemaps = [line.removeprefix("Sitemap: ") for line in lines if line.startswith("Sitemap:")]
+        assert sitemaps == [
+            "https://robcox2910.github.io/sitemap.xml",
+            *(f"{p.site_url}sitemap.xml" for p in SERIES),
+        ]
+
+    def test_robots_is_a_hub_file(self) -> None:
+        """``series hub`` writes it, so the hub's drift test covers it."""
+        assert ROBOTS_TXT in HUB_FILES
 
 
 class TestAbout:
