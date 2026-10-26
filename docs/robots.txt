@@ -18,4 +18,5 @@ Sitemap: https://robcox2910.github.io/pygit/sitemap.xml
 Sitemap: https://robcox2910.github.io/pysearch/sitemap.xml
 Sitemap: https://robcox2910.github.io/pymq/sitemap.xml
 Sitemap: https://robcox2910.github.io/pyllm/sitemap.xml
+Sitemap: https://robcox2910.github.io/pyscheduler/sitemap.xml
 Sitemap: https://robcox2910.github.io/pystack/sitemap.xml

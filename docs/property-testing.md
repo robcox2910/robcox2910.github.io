@@ -51,4 +51,5 @@ In learning order, each with the rule its page walks through:
 - **[PySearch](https://robcox2910.github.io/pysearch/property-testing/)**: A search finds exactly what reading every book by hand would find, with the same scores, in the same order.
 - **[PyMQ](https://robcox2910.github.io/pymq/property-testing/)**: A saved queue loads back with every message, in the same delivery order.
 - **[PyLLM](https://robcox2910.github.io/pyllm/property-testing/)**: `backward()` gets the same slopes as nudging each number a little and measuring.
+- **[PyScheduler](https://robcox2910.github.io/pyscheduler/property-testing/)**: Whatever values you list on a cron dial, parsing gives back exactly those values, and the fire times come out once each, in order.
 - **[PyStack](https://robcox2910.github.io/pystack/property-testing/)**: Whatever a Pebble program stores with `kv_set`, the next run reads back exactly.

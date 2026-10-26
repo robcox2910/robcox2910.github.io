@@ -8,7 +8,7 @@ projects:
   - name: PyOS
     repo: py-os
     folder: os_learning
-    package: pyos-learn
+    package: fromscratch-pyos
     teaches: Operating systems
     description: "Build your own operating system in Python: processes, CPU schedulers, virtual memory, a journaled filesystem and networking, explained for learners."
     topics: [operating-system, os, scheduling, virtual-memory, filesystem, simulator]
@@ -17,7 +17,7 @@ projects:
   - name: Pebble
     repo: pebble-lang
     folder: pebble-lang
-    package: pebble-lang
+    package: fromscratch-pebble
     teaches: Compilers and programming languages
     description: "Build your own programming language in Python: a lexer, parser, compiler and stack-based bytecode virtual machine, explained for learners."
     topics: [compiler, programming-language, interpreter, bytecode, virtual-machine, parser]
@@ -26,7 +26,7 @@ projects:
   - name: PyDB
     repo: pydb
     folder: pydb
-    package: pydb
+    package: fromscratch-pydb
     teaches: Relational databases
     description: "Build your own SQL database in Python: tables, joins, B-tree indexes, a query planner and transactions, explained for learners."
     topics: [database, sql, relational-database, btree, query-planner]
@@ -35,7 +35,7 @@ projects:
   - name: PyKV
     repo: pykv
     folder: pykv
-    package: pykv
+    package: fromscratch-pykv
     teaches: Key-value stores
     description: "Build your own key-value store in Python: get and set, expiring keys, persistence and atomic counters, explained for learners."
     topics: [key-value-store, database, cache, redis]
@@ -44,7 +44,7 @@ projects:
   - name: PyDocDB
     repo: pydoc-db
     folder: pydocdb
-    package: pydocdb
+    package: fromscratch-pydocdb
     teaches: Document databases
     description: "Build your own document database in Python: collections, a MongoDB-style query language, indexes and aggregation, explained for learners."
     topics: [document-database, database, nosql, mongodb]
@@ -53,7 +53,7 @@ projects:
   - name: PyGraphDB
     repo: pygraphdb
     folder: pygraphdb
-    package: pygraphdb
+    package: fromscratch-pygraphdb
     teaches: Graph databases
     description: "Build your own graph database in Python: nodes, edges, traversal, shortest paths and a Cypher-like query language, explained for learners."
     topics: [graph-database, database, graph, cypher]
@@ -62,7 +62,7 @@ projects:
   - name: PyTSDB
     repo: pytsdb
     folder: pytsdb
-    package: pytsdb
+    package: fromscratch-pytsdb
     teaches: Time-series databases
     description: "Build your own time-series database in Python: range queries, tags, downsampling and retention policies, explained for learners."
     topics: [time-series, time-series-database, database, metrics]
@@ -71,7 +71,7 @@ projects:
   - name: PyVecDB
     repo: pyvecdb
     folder: pyvecdb
-    package: pyvecdb
+    package: fromscratch-pyvecdb
     teaches: Vector databases
     description: "Build your own vector database in Python: distance metrics, nearest-neighbour search and metadata filtering, explained for learners."
     topics: [vector-database, database, similarity-search, embeddings, knn]
@@ -80,7 +80,7 @@ projects:
   - name: PyColDB
     repo: pycoldb
     folder: pycoldb
-    package: pycoldb
+    package: fromscratch-pycoldb
     teaches: Column-family databases
     description: "Build your own column-family database in Python: keyspaces, column families, TTLs and tombstones like Cassandra, explained for learners."
     topics: [column-family, database, nosql, cassandra]
@@ -89,7 +89,7 @@ projects:
   - name: PyCrypt
     repo: pycrypt
     folder: pycrypt
-    package: pycrypt
+    package: fromscratch-pycrypt
     teaches: Cryptography
     description: "Build your own cryptography toolkit in Python: hashing, classic ciphers, key derivation, HMAC and signatures, explained for learners."
     topics: [cryptography, hashing, encryption, hmac, security]
@@ -98,7 +98,7 @@ projects:
   - name: PyNet
     repo: pynet
     folder: pynet
-    package: pynet
+    package: fromscratch-pynet
     teaches: Computer networking
     description: "Build your own networking library in Python: DNS, TCP, UDP, HTTP, WebSockets and SMTP over raw sockets, explained for learners."
     topics: [networking, tcp, http, dns, websocket, sockets]
@@ -107,7 +107,7 @@ projects:
   - name: PyWeb
     repo: pyweb
     folder: pyweb
-    package: pyweb
+    package: fromscratch-pyweb
     teaches: HTTP web servers
     description: "Build your own web server in Python: HTTP parsing, routing, templates and static files on top of PyNet, explained for learners."
     topics: [web-server, http, http-server, web-framework, routing]
@@ -116,7 +116,7 @@ projects:
   - name: PyGit
     repo: pygit
     folder: pygit
-    package: pygit
+    package: fromscratch-pygit
     teaches: Version control
     description: "Build your own Git in Python: content hashing, trees, commits, branches, staging and diffs, explained for learners."
     topics: [git, version-control, vcs]
@@ -125,7 +125,7 @@ projects:
   - name: PySearch
     repo: pysearch
     folder: pysearch
-    package: pysearch
+    package: fromscratch-pysearch
     teaches: Search engines
     description: "Build your own search engine in Python: tokenizing, an inverted index, TF-IDF ranking and boolean queries, explained for learners."
     topics: [search-engine, full-text-search, inverted-index, tf-idf, information-retrieval]
@@ -134,7 +134,7 @@ projects:
   - name: PyMQ
     repo: pymq
     folder: pymq
-    package: pymq
+    package: fromscratch-pymq
     teaches: Message queues
     description: "Build your own message queue in Python: producers, consumers and a networked broker, explained for learners."
     topics: [message-queue, messaging, pub-sub, broker]
@@ -143,16 +143,25 @@ projects:
   - name: PyLLM
     repo: pyllm
     folder: pyllm
-    package: pyllm
+    package: fromscratch-pyllm
     teaches: Language models (the brain)
     description: "Build your own GPT in Python: autograd, attention, a Transformer, a tokenizer and training, explained for learners."
     topics: [llm, gpt, transformer, machine-learning, neural-network, deep-learning]
     property: "`backward()` gets the same slopes as nudging each number a little and measuring."
     builds_on: [Pebble]
+  - name: PyScheduler
+    repo: pyscheduler
+    folder: pyscheduler
+    package: fromscratch-pyscheduler
+    teaches: Job scheduling
+    description: "Build your own job scheduler in Python: cron schedules, dependencies, retries, crash recovery and a web UI, explained for learners."
+    topics: [scheduler, job-scheduler, cron, workflow, automation]
+    property: "Whatever values you list on a cron dial, parsing gives back exactly those values, and the fire times come out once each, in order."
+    builds_on: [PyDB, PyNet, PyWeb, PyMQ]
   - name: PyStack
     repo: pystack
     folder: pystack
-    package: pystack
+    package: fromscratch-pystack
     teaches: Full-stack integration
     description: "Every project in the series joined into one working platform, from the operating system up to the language model."
     topics: [full-stack, systems, integration]
@@ -174,3 +183,4 @@ projects:
       - PySearch
       - PyMQ
       - PyLLM
+      - PyScheduler

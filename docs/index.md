@@ -4,9 +4,9 @@ description: "Build real systems from scratch in Python: an operating system, a 
 
 # From scratch in Python
 
-**Build real systems in Python, and see exactly how they work:** an operating system, a programming language, seven kinds of database, a network stack, a web server, Git, a search engine, a message queue and a GPT-style language model.
+**Build real systems in Python, and see exactly how they work:** an operating system, a programming language, seven kinds of database, a network stack, a web server, Git, a search engine, a message queue, a job scheduler and a GPT-style language model.
 
-A series of 17 projects that build real systems from scratch, to teach how they work. They are free, open source, and written for curious learners aged 12 and up.
+A series of 18 projects that build real systems from scratch, to teach how they work. They are free, open source, and written for curious learners aged 12 and up.
 
 ## Why build it yourself?
 
@@ -99,6 +99,10 @@ Start with **PyOS** or **Pebble**, then pick whatever interests you: each card s
 
     Language models (the brain). Builds on Pebble. [Source](https://github.com/robcox2910/pyllm)
 
+- **[PyScheduler](https://robcox2910.github.io/pyscheduler/)**
+
+    Job scheduling. Builds on PyDB, PyNet, PyWeb, PyMQ. [Source](https://github.com/robcox2910/pyscheduler)
+
 </div>
 
 ## Putting it together
@@ -107,7 +111,7 @@ Start with **PyOS** or **Pebble**, then pick whatever interests you: each card s
 
 - **[PyStack](https://robcox2910.github.io/pystack/)**
 
-    Full-stack integration. Builds on PyOS, Pebble, PyDB, PyKV, PyDocDB, PyGraphDB, PyTSDB, PyVecDB, PyColDB, PyCrypt, PyNet, PyWeb, PyGit, PySearch, PyMQ, PyLLM. [Source](https://github.com/robcox2910/pystack)
+    Full-stack integration. Builds on PyOS, Pebble, PyDB, PyKV, PyDocDB, PyGraphDB, PyTSDB, PyVecDB, PyColDB, PyCrypt, PyNet, PyWeb, PyGit, PySearch, PyMQ, PyLLM, PyScheduler. [Source](https://github.com/robcox2910/pystack)
 
 </div>
 
