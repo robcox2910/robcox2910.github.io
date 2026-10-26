@@ -19,6 +19,12 @@ A series of 18 projects that build real systems from scratch, to teach how they 
 
 Start with **PyOS** or **Pebble**, then pick whatever interests you: each card says which earlier projects it builds on. **PyStack** at the end joins every project into one platform.
 
+Every project is on PyPI as `fromscratch-<name>`. Install PyStack and you get the whole series:
+
+```bash
+pip install fromscratch-pystack
+```
+
 ## Start here
 
 <div class="grid cards" markdown>

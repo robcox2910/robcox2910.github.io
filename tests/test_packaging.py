@@ -6,8 +6,16 @@ import tomlkit
 import yaml
 
 from series.config import Project, load_series
-from series.render import RELEASE_WORKFLOW, render
-from series.sync import apply_to_tree
+from series.render import (
+    DOCS_START,
+    RELEASE_WORKFLOW,
+    SERIES_START,
+    TEMPLATES,
+    Block,
+    render,
+    render_hub,
+)
+from series.sync import apply_to_tree, render_home
 from series.tomledit import apply_standard_toml
 
 SERIES = load_series()
@@ -97,3 +105,44 @@ class TestReleaseWorkflow:
         workflow = yaml.safe_load(render(project, SERIES, tmp_path).files[RELEASE_WORKFLOW])
         env = workflow["jobs"]["publish"]["environment"]
         assert env == {"name": "pypi", "url": f"https://pypi.org/project/{project.package}/"}
+
+
+def _block_body(rendered_blocks: list[Block], start: str) -> str:
+    """Return the body of the block that opens with ``start``."""
+    return next(body for _, s, _, body in rendered_blocks if s == start)
+
+
+class TestInstallDocs:
+    """Every README and the home page tell readers how to ``pip install`` the series."""
+
+    def test_project_docs_block_shows_its_pip_install_and_badge(self, tmp_path: Path) -> None:
+        """A project's docs block gives its own ``pip install`` line and a PyPI badge."""
+        project = _project("PyDB")
+        body = _block_body(render(project, SERIES, tmp_path).blocks["README.md"], DOCS_START)
+        assert f"pip install {project.package}" in body
+        assert f"https://img.shields.io/pypi/v/{project.package}" in body
+        assert f"https://pypi.org/project/{project.package}/" in body
+
+    def test_hub_docs_block_installs_the_whole_series(self) -> None:
+        """The hub has no package of its own, so it points at PyStack, which pulls in the rest."""
+        body = _block_body(render_hub(SERIES).blocks["README.md"], DOCS_START)
+        assert f"pip install {_project('PyStack').package}" in body
+
+    def test_series_table_links_every_package_on_pypi(self, tmp_path: Path) -> None:
+        """The related-projects table has a PyPI column linking each package."""
+        body = _block_body(
+            render(_project("PyDB"), SERIES, tmp_path).blocks["README.md"], SERIES_START
+        )
+        assert "| Project | What it teaches | Repository | Docs | PyPI |" in body
+        for p in SERIES:
+            assert f"[{p.package}](https://pypi.org/project/{p.package}/)" in body
+
+    def test_home_page_says_how_to_install(self) -> None:
+        """The series home shows the one-line install for everything."""
+        assert f"pip install {_project('PyStack').package}" in render_home(SERIES)
+
+    def test_claude_standard_says_siblings_come_from_pypi(self) -> None:
+        """The shared CLAUDE.md rule names PyPI releases, not git-tag sources."""
+        standard = (TEMPLATES / "claude_standard.md").read_text(encoding="utf-8")
+        assert "fromscratch-" in standard
+        assert "(git + tag)" not in standard
