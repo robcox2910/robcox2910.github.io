@@ -1,3 +1,26 @@
 ## Documentation
 
 Full docs (with kid-friendly explanations of every idea): {{ site_url }}
+
+## Install
+
+{% set stack = (series | selectattr("repo", "equalto", "pystack") | list or [none])[0] %}
+{% if current %}
+[![PyPI](https://img.shields.io/pypi/v/{{ current.package }})](https://pypi.org/project/{{ current.package }}/)
+
+```bash
+pip install {{ current.package }}
+```
+
+{% if stack and current.repo != stack.repo %}
+Or get the whole series at once: `pip install {{ stack.package }}`.
+{% endif %}
+{% elif stack %}
+Every project is on PyPI as `fromscratch-<name>`. Get the whole series at once:
+
+```bash
+pip install {{ stack.package }}
+```
+{% else %}
+Every project is on PyPI as `fromscratch-<name>`.
+{% endif %}

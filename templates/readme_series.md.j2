@@ -2,9 +2,9 @@
 
 This project is one of a series that builds real systems "from scratch in Python" to teach how they work. See the [series home]({{ home_url }}) for the full story.
 
-| Project | What it teaches | Repository | Docs |
-| --- | --- | --- | --- |
+| Project | What it teaches | Repository | Docs | PyPI |
+| --- | --- | --- | --- | --- |
 {% for p in series %}
 {% set b = "**" if current and p.repo == current.repo else "" %}
-| {{ b }}{{ p.name }}{{ b }} | {{ b }}{{ p.teaches }}{{ b }} | [{{ p.repo }}]({{ p.github_url }}) | [Docs]({{ p.site_url }}) |
+| {{ b }}{{ p.name }}{{ b }} | {{ b }}{{ p.teaches }}{{ b }} | [{{ p.repo }}]({{ p.github_url }}) | [Docs]({{ p.site_url }}) | [{{ p.package }}](https://pypi.org/project/{{ p.package }}/) |
 {% endfor %}

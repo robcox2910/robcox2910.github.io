@@ -194,6 +194,10 @@ HOME_START = (
     "says which earlier projects it builds on. **PyStack** at the end joins every "
     "project into one platform."
 )
+HOME_INSTALL = (
+    "Every project is on PyPI as `fromscratch-<name>`. Install PyStack and you get "
+    "the whole series:"
+)
 
 
 def render_home(series: list[Project]) -> str:
@@ -235,6 +239,15 @@ def render_home(series: list[Project]) -> str:
         HOME_START,
         "",
     ]
+    if "pystack" in by_repo:
+        lines += [
+            HOME_INSTALL,
+            "",
+            "```bash",
+            f"pip install {by_repo['pystack'].package}",
+            "```",
+            "",
+        ]
     for title, repos in HOME_GROUPS:
         members = [by_repo[r] for r in repos if r in by_repo]
         if not members:
