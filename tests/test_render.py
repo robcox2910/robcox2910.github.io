@@ -37,7 +37,7 @@ def load_mkdocs(text: str) -> Any:
 
 
 SERIES = load_series()
-SERIES_COUNT = 17
+SERIES_COUNT = 18
 PEBBLE = SERIES[1]
 PYDB = SERIES[2]
 SERIES_START = "<!-- series:start -->"
@@ -63,7 +63,7 @@ def block(rendered: Rendered, path: str, start: str) -> tuple[str | None, str, s
     return next(entry for entry in rendered.blocks[path] if entry[1] == start)
 
 
-def test_series_table_lists_all_17_in_order_and_bolds_current(tmp_path: Path) -> None:
+def test_series_table_lists_all_18_in_order_and_bolds_current(tmp_path: Path) -> None:
     """The table has one row per project, in order, with the current one bold."""
     rendered, _ = make_repo(tmp_path)
     pattern, _, _, body = block(rendered, "README.md", SERIES_START)

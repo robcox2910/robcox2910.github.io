@@ -1,7 +1,8 @@
 """Set the shared standard keys in a ``pyproject.toml`` without disturbing the rest.
 
-Three things belong to the series standard: the ruff rule groups, the pyright
-mode and the Hypothesis floor in the ``dev`` extra. Everything else (ignores,
+Four things belong to the series standard: the distribution name (from
+``series.yml``), the ruff rule groups, the pyright mode and the Hypothesis floor
+in the ``dev`` extra. Everything else (ignores,
 per-file ignores, coverage floors, comments, ordering) is left exactly as the
 project wrote it.
 """
@@ -80,9 +81,15 @@ def ensure_dev_floor(doc: TOMLDocument) -> None:
         dev.append(HYPOTHESIS_FLOOR)
 
 
-def apply_standard_toml(text: str) -> str:
-    """Return ``text`` with the standard ruff ``select``, pyright mode and Hypothesis floor set."""
+def apply_standard_toml(text: str, package: str | None = None) -> str:
+    """Return ``text`` with the standard ruff ``select``, pyright mode and Hypothesis floor set.
+
+    When ``package`` is given it also becomes ``[project] name``, so the name
+    published to PyPI always matches ``series.yml``.
+    """
     doc = tomlkit.parse(text)
+    if package is not None:
+        _table(doc, "project")["name"] = package
     tool = _table(doc, "tool")
     ruff = _table(tool, "ruff")
     lint = _table(ruff, "lint")

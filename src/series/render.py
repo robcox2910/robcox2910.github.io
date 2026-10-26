@@ -8,7 +8,9 @@ The ``Rendered`` contract
 -------------------------
 ``files`` maps a repo-relative path to the complete content of a file the
 sync owns outright: ``LICENSE``, ``.pre-commit-config.yaml``,
-``.github/workflows/ci.yml``, ``.github/workflows/docs.yml`` and
+``.github/workflows/ci.yml``, ``.github/workflows/docs.yml``,
+``.github/workflows/release.yml`` (build on a ``vX.Y.Z`` tag, attach the files
+to a GitHub release and publish to PyPI through trusted publishing) and
 ``overrides/main.html`` (the theme's ``custom_dir``, which carries the
 analytics script). When the
 repo has no ``mkdocs.yml`` it also holds a whole ``mkdocs.yml``, and when it
@@ -79,6 +81,7 @@ MARKDOWN_LINK = re.compile(r"(!?)\[([^\]]*)\]\(([^)\s]+)((?:\s+\"[^\"]*\")?)\)")
 URL_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 PLAIN_TITLE = re.compile(r"[\w .()&/-]+")
 OVERRIDES_MAIN = "overrides/main.html"
+RELEASE_WORKFLOW = ".github/workflows/release.yml"
 
 Block = tuple[str | None, str, str, str]
 
@@ -279,6 +282,7 @@ def render(project: Project, series: list[Project], repo_root: Path) -> Rendered
             ),
             ".github/workflows/ci.yml": _template("ci.yml"),
             ".github/workflows/docs.yml": _template("docs.yml", coverage_report=coverage),
+            RELEASE_WORKFLOW: _template("release.yml.j2", project=project),
             OVERRIDES_MAIN: overrides_main(),
         },
         blocks={

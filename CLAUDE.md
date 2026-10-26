@@ -56,6 +56,7 @@ This repo is the series home: `series.yml` lists the projects, `src/series` load
 - `series sync` and `series sync --check` need a fresh, empty `SERIES_SCRATCH` each run (an existing clone is refused); `--check` exits 0 clean, 1 drift (a stale `uv.lock` counts), 2 a repo failed; when a sync changes a repo's `pyproject.toml` it runs `uv lock` there and commits the lock
 - `v1` policy: test a workflow change by pointing one project PR's caller at the branch commit SHA before moving `v1`; consider immutable `v1.0.x` tags alongside; a breaking change gets `v2`, a template change and one sync
 - `uv run series about` sets each repo's GitHub description, website and topics from `series.yml`; the sync also owns `site_description` in every `mkdocs.yml`, the `plugins` key (inside the theme block) and `overrides/main.html` (GoatCounter, from `GOATCOUNTER_CODE` in `src/series/config.py`)
+- PyPI: each project publishes as `fromscratch-<name>` (`package` in `series.yml`, written into `[project] name` by the sync); the sync also owns `.github/workflows/release.yml` (tag `vX.Y.Z` -> build, GitHub release, PyPI trusted publishing with environment `pypi`). See "Publishing to PyPI" in `README.md`
 - This repo's site deploys via `.github/workflows/site.yml` (which calls the local `docs.yml`), so "the docs workflow" in the standard above means `site.yml` here; the hub keeps its own `ci.yml`/`site.yml` and never gets the `@v1` caller files
 
 ## Project notes

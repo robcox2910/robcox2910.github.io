@@ -7,7 +7,7 @@ import pytest
 
 from series.config import SERIES_FILE, Project, SeriesError, load_series
 
-EXPECTED_COUNT = 17
+EXPECTED_COUNT = 18
 EXPECTED_NAMES = [
     "PyOS",
     "Pebble",
@@ -25,6 +25,7 @@ EXPECTED_NAMES = [
     "PySearch",
     "PyMQ",
     "PyLLM",
+    "PyScheduler",
     "PyStack",
 ]
 VALID_ENTRY = """\
@@ -48,8 +49,8 @@ def _write(tmp_path: Path, text: str) -> Path:
 class TestRealSeries:
     """Checks on the real series.yml shipped in this repo."""
 
-    def test_series_has_all_17_projects_in_order(self) -> None:
-        """All 17 projects appear, PyStack last."""
+    def test_series_has_all_18_projects_in_order(self) -> None:
+        """All 18 projects appear, PyStack last."""
         names = [p.name for p in load_series()]
         assert len(names) == EXPECTED_COUNT
         assert names == EXPECTED_NAMES

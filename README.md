@@ -75,6 +75,23 @@ does the same for this repo.
   commit with that change. Because the theme block now holds `plugins:`, a
   project must not add its own `plugins` key; add the plugin to the template.
 
+### Publishing to PyPI
+
+- Every project publishes as `fromscratch-<name>` (the `package` field in
+  `series.yml`); the sync writes it into `[project] name`, so the two never
+  drift. Import names and commands are unchanged (`import pydb`, `pyos`).
+- The sync owns `.github/workflows/release.yml`: a `vX.Y.Z` tag builds the
+  wheel and sdist, attaches them to a GitHub release and publishes to PyPI
+  with trusted publishing (no tokens stored). It lives in each repo rather
+  than behind `@v1` because PyPI trusted publishing does not accept a
+  reusable workflow as the publisher.
+- PyPI needs a trusted publisher per project, set up once on pypi.org:
+  owner `robcox2910`, the repo name, workflow `release.yml`, environment
+  `pypi`. A "pending" publisher works before the first upload.
+- Publish in dependency order: projects with no siblings first, then
+  switch a dependent's sibling requirements from git tags to the PyPI
+  names and release it.
+
 ### The `v1` workflows
 
 Projects call `python-ci.yml@v1` and `docs.yml@v1` from this repo, and `v1` is
@@ -115,6 +132,7 @@ This project is one of a series that builds real systems "from scratch in Python
 | PySearch | Search engines | [pysearch](https://github.com/robcox2910/pysearch) | [Docs](https://robcox2910.github.io/pysearch/) |
 | PyMQ | Message queues | [pymq](https://github.com/robcox2910/pymq) | [Docs](https://robcox2910.github.io/pymq/) |
 | PyLLM | Language models (the brain) | [pyllm](https://github.com/robcox2910/pyllm) | [Docs](https://robcox2910.github.io/pyllm/) |
+| PyScheduler | Job scheduling | [pyscheduler](https://github.com/robcox2910/pyscheduler) | [Docs](https://robcox2910.github.io/pyscheduler/) |
 | PyStack | Full-stack integration | [pystack](https://github.com/robcox2910/pystack) | [Docs](https://robcox2910.github.io/pystack/) |
 <!-- series:end -->
 

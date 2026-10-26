@@ -70,7 +70,10 @@ ROBOTS_TXT = "docs/robots.txt"
 HOME_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Start here", ("py-os", "pebble-lang")),
     ("Storage", ("pydb", "pykv", "pydoc-db", "pygraphdb", "pytsdb", "pyvecdb", "pycoldb")),
-    ("Systems", ("pycrypt", "pynet", "pyweb", "pygit", "pysearch", "pymq", "pyllm")),
+    (
+        "Systems",
+        ("pycrypt", "pynet", "pyweb", "pygit", "pysearch", "pymq", "pyllm", "pyscheduler"),
+    ),
     ("Putting it together", ("pystack",)),
 )
 
@@ -128,7 +131,7 @@ def _plan(
 
     pyproject = _read(repo_root / "pyproject.toml")
     if pyproject is not None:
-        updates["pyproject.toml"] = apply_standard_toml(pyproject)
+        updates["pyproject.toml"] = apply_standard_toml(pyproject, project.package)
         result.dropped_select_comments = _select_had_comments(pyproject) and (
             updates["pyproject.toml"] != pyproject
         )
@@ -163,7 +166,8 @@ def apply_to_tree(repo_root: Path, project: Project, series: list[Project]) -> S
 HOME_PITCH = (
     "**Build real systems in Python, and see exactly how they work:** an operating "
     "system, a programming language, seven kinds of database, a network stack, a web "
-    "server, Git, a search engine, a message queue and a GPT-style language model."
+    "server, Git, a search engine, a message queue, a job scheduler and a GPT-style "
+    "language model."
 )
 HOME_WHY = (
     (
