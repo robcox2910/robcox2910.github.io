@@ -164,39 +164,36 @@ def apply_to_tree(repo_root: Path, project: Project, series: list[Project]) -> S
 
 
 HOME_PITCH = (
-    "**Build real systems in Python, and see exactly how they work:** an operating "
-    "system, a programming language, seven kinds of database, a network stack, a web "
-    "server, Git, a search engine, a message queue, a job scheduler and a GPT-style "
-    "language model."
+    "**Ever wondered what's really going on inside your computer?** How does it run "
+    "lots of programs at once? How does a search box find one word in a million pages? "
+    "How does a chatbot write a sentence? Here you build each of those things yourself, "
+    "one small step at a time, and find out."
 )
 HOME_WHY = (
     (
-        "- **Real, working systems.** Each project runs. Boot PyOS and type commands into "
-        "its shell, write a program in Pebble, query PyDB with SQL."
+        "- **It really works.** Every project runs. Switch on your own little operating "
+        "system and type commands into it, write a program in your own programming "
+        "language, or ask your own database questions."
     ),
     (
-        "- **Explained for learners.** Every idea gets a plain-English page with an "
-        "everyday analogy, written so a curious 12-year-old can follow. Grown-ups who "
-        "never got to look inside are very welcome too."
+        "- **Explained with everyday things.** Databases are explained with trading cards, "
+        "search engines with a librarian, and Git with fingerprints and a diary. Grown-ups "
+        "who never got to look inside are very welcome too."
     ),
     (
-        "- **Nothing hidden in a library.** The projects use only the Python standard "
-        "library (PyLLM adds NumPy for fast arrays), so every interesting part is code "
-        "you can read."
+        "- **No magic boxes.** Nothing important is hidden away. Every clever bit is "
+        "written out for you to read, change and even break."
     ),
     (
-        "- **Built test-first.** Every feature was written with test-driven development, "
-        "so the tests double as worked examples."
+        "- **Small steps.** Each idea builds on the one before, so you're never thrown in "
+        "at the deep end."
     ),
 )
 HOME_START = (
-    "Start with **PyOS** or **Pebble**, then pick whatever interests you: each card "
-    "says which earlier projects it builds on. **PyStack** at the end joins every "
-    "project into one platform."
-)
-HOME_INSTALL = (
-    "Every project is on PyPI as `fromscratch-<name>`. Install PyStack and you get "
-    "the whole series:"
+    "Pick **PyOS** (a pretend computer you can switch on and type into) or **Pebble** "
+    "(your very own programming language) and have a play. After that, follow whatever "
+    "sounds fun: each card says which projects it builds on. **PyStack**, at the very "
+    "end, joins everything together."
 )
 
 
@@ -216,8 +213,8 @@ def render_home(series: list[Project]) -> str:
         )
         raise SeriesError(msg)
     intro = (
-        f"A series of {len(series)} projects that build real systems from scratch, "
-        "to teach how they work."
+        f"A series of {len(series)} projects that build real things from scratch, "
+        "so you can see how they work."
     )
     lines = [
         "---",
@@ -228,7 +225,7 @@ def render_home(series: list[Project]) -> str:
         "",
         HOME_PITCH,
         "",
-        (f"{intro} They are free, open source, and written for curious learners aged 12 and up."),
+        (f"{intro} They're all free, and written for curious people aged 12 and up."),
         "",
         "## Why build it yourself?",
         "",
@@ -239,15 +236,6 @@ def render_home(series: list[Project]) -> str:
         HOME_START,
         "",
     ]
-    if "pystack" in by_repo:
-        lines += [
-            HOME_INSTALL,
-            "",
-            "```bash",
-            f"pip install {by_repo['pystack'].package}",
-            "```",
-            "",
-        ]
     for title, repos in HOME_GROUPS:
         members = [by_repo[r] for r in repos if r in by_repo]
         if not members:

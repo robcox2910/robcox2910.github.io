@@ -4,26 +4,20 @@ description: "Build real systems from scratch in Python: an operating system, a 
 
 # From scratch in Python
 
-**Build real systems in Python, and see exactly how they work:** an operating system, a programming language, seven kinds of database, a network stack, a web server, Git, a search engine, a message queue, a job scheduler and a GPT-style language model.
+**Ever wondered what's really going on inside your computer?** How does it run lots of programs at once? How does a search box find one word in a million pages? How does a chatbot write a sentence? Here you build each of those things yourself, one small step at a time, and find out.
 
-A series of 18 projects that build real systems from scratch, to teach how they work. They are free, open source, and written for curious learners aged 12 and up.
+A series of 18 projects that build real things from scratch, so you can see how they work. They're all free, and written for curious people aged 12 and up.
 
 ## Why build it yourself?
 
-- **Real, working systems.** Each project runs. Boot PyOS and type commands into its shell, write a program in Pebble, query PyDB with SQL.
-- **Explained for learners.** Every idea gets a plain-English page with an everyday analogy, written so a curious 12-year-old can follow. Grown-ups who never got to look inside are very welcome too.
-- **Nothing hidden in a library.** The projects use only the Python standard library (PyLLM adds NumPy for fast arrays), so every interesting part is code you can read.
-- **Built test-first.** Every feature was written with test-driven development, so the tests double as worked examples.
+- **It really works.** Every project runs. Switch on your own little operating system and type commands into it, write a program in your own programming language, or ask your own database questions.
+- **Explained with everyday things.** Databases are explained with trading cards, search engines with a librarian, and Git with fingerprints and a diary. Grown-ups who never got to look inside are very welcome too.
+- **No magic boxes.** Nothing important is hidden away. Every clever bit is written out for you to read, change and even break.
+- **Small steps.** Each idea builds on the one before, so you're never thrown in at the deep end.
 
 ## How to start
 
-Start with **PyOS** or **Pebble**, then pick whatever interests you: each card says which earlier projects it builds on. **PyStack** at the end joins every project into one platform.
-
-Every project is on PyPI as `fromscratch-<name>`. Install PyStack and you get the whole series:
-
-```bash
-pip install fromscratch-pystack
-```
+Pick **PyOS** (a pretend computer you can switch on and type into) or **Pebble** (your very own programming language) and have a play. After that, follow whatever sounds fun: each card says which projects it builds on. **PyStack**, at the very end, joins everything together.
 
 ## Start here
 

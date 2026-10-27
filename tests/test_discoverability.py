@@ -159,6 +159,12 @@ class TestHomePage:
         assert "## How to start" in home
         assert home.index("## How to start") < home.index("## Start here")
 
+    def test_home_page_skips_the_jargon(self) -> None:
+        """The pitch avoids words that put beginners off before they have started."""
+        home = render_home(SERIES).lower()
+        for word in ("standard library", "numpy", "test-driven", "```"):
+            assert word not in home
+
 
 class TestRobots:
     """The hub's robots.txt lets every crawler in and names every sitemap."""
