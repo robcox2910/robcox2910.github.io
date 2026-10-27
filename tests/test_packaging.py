@@ -113,7 +113,7 @@ def _block_body(rendered_blocks: list[Block], start: str) -> str:
 
 
 class TestInstallDocs:
-    """Every README and the home page tell readers how to ``pip install`` the series."""
+    """Every README tells readers how to ``pip install`` the series; the home page does not."""
 
     def test_project_docs_block_shows_its_pip_install_and_badge(self, tmp_path: Path) -> None:
         """A project's docs block gives its own ``pip install`` line and a PyPI badge."""
@@ -137,9 +137,11 @@ class TestInstallDocs:
         for p in SERIES:
             assert f"[{p.package}](https://pypi.org/project/{p.package}/)" in body
 
-    def test_home_page_says_how_to_install(self) -> None:
-        """The series home shows the one-line install for everything."""
-        assert f"pip install {_project('PyStack').package}" in render_home(SERIES)
+    def test_home_page_has_no_install_commands(self) -> None:
+        """The series home stays friendly: installing lives in the READMEs and project docs."""
+        home = render_home(SERIES)
+        assert "pip install" not in home
+        assert "PyPI" not in home
 
     def test_claude_standard_says_siblings_come_from_pypi(self) -> None:
         """The shared CLAUDE.md rule names PyPI releases, not git-tag sources."""
